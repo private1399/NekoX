@@ -9,9 +9,12 @@
 package org.telegram.messenger;
 
 import androidx.annotation.UiThread;
+
 import android.util.SparseArray;
 
 import java.util.ArrayList;
+
+import tw.nekomimi.nekogram.utils.UIUtil;
 
 public class NotificationCenter {
 
@@ -287,12 +290,14 @@ public class NotificationCenter {
         }
         if (id == startAllHeavyOperations) {
             Integer flags = (Integer) args[0];
-            currentHeavyOperationFlags &=~ flags;
+            currentHeavyOperationFlags &= ~flags;
         } else if (id == stopAllHeavyOperations) {
             Integer flags = (Integer) args[0];
             currentHeavyOperationFlags |= flags;
         }
-        postNotificationNameInternal(id, allowDuringAnimation, args);
+        boolean finalAllowDuringAnimation = allowDuringAnimation;
+        Runnable run = () -> postNotificationNameInternal(id, finalAllowDuringAnimation, args);
+        AndroidUtilities.runOnUIThread(run);
     }
 
     @UiThread
