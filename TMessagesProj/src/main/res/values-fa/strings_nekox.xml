@@ -29,7 +29,7 @@
     <string name="FilterNameGroupsDescription">فقط پیامهای گفتگو های گروهی</string>
     <string name="FilterNameChannels">کانال ها</string>
     <string name="FilterNameChannelsDescription">فقط پیام های کانال ها</string>
-    <string name="FilterNameBots">ربات ها</string>
+    <string name="FilterNameBots">ربات</string>
     <string name="FilterNameBotsDescription">فقط پیام های ربات ها</string>
     <string name="FilterNameUnmuted">صدا دار</string>
     <string name="FilterNameUnmutedDescription">فقط پیام های گفتگو های صدا دار</string>
@@ -56,13 +56,13 @@
     <string name="DeleteAllInChat">حذف همه در این گفتگو</string>
     <string name="DeleteAllInChatAlert">هشدار! با این کار ، **تمام پیام ها** در این گفتگو برای همه شرکت کنندگان حذف می شود.</string>
     <string name="UnblockAll">رفع مسدودی همه</string>
-    <string name="UnblockAllWarn">آیا شما از رفع مسدود**همه ی کاربران و ربات ها**اطمینان دارید؟</string>
+    <string name="UnblockAllWarn">آیا شما از رفع مسدود**همه ی کاربران و ربات ها**اطمینان دارید?</string>
     <string name="BlockedListEmpty">شما هیچ فردی را مسدود نکرده اید :)</string>
     <string name="ProxyTypeVmess">پروکسی Vmess</string>
     <string name="AddProxySocks5">افزودن پروکسی Socks5</string>
     <string name="AddProxyTelegram">افزودن پروکسی MTproto</string>
     <string name="AddProxyVmess">افزودن پروکسی Vmess</string>
-    <string name="AddProxySS">افزودن شادوساکس SS</string>
+    <string name="AddProxySS">افزودن شادوساکس Ss</string>
     <string name="AddProxySSR">افزودن شادوساکس SSR</string>
     <string name="EditProxy">ویرایش پروکسی</string>
     <string name="ShareProxy">اشتراک گذاری پروکسی</string>
