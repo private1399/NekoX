@@ -1282,7 +1282,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                         boolean hintShowed = preferences.getBoolean("archivehint_l", false) || SharedConfig.archiveHidden;
                         if (!hintShowed) {
-                            preferences.edit().putBoolean("archivehint_l", true).commit();
+                            preferences.edit().putBoolean("archivehint_l", true).apply();
                         }
                         getUndoView().showWithAction(dialog.id, hintShowed ? UndoView.ACTION_ARCHIVE : UndoView.ACTION_ARCHIVE_HINT, null, () -> {
                             dialogsListFrozen = true;
@@ -1442,13 +1442,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (!dialogsLoaded[currentAccount]) {
-            getMessagesController().loadGlobalNotificationsSettings();
-            getMessagesController().loadDialogs(folderId, 0, 100, true);
-            getMessagesController().loadHintDialogs();
-            getMessagesController().loadUserInfo(UserConfig.getInstance(currentAccount).getCurrentUser(), false, classGuid);
+            MessagesController messagesController = getMessagesController();
+            messagesController.loadGlobalNotificationsSettings();
+            messagesController.loadDialogs(folderId, 0, 100, true);
+            messagesController.loadHintDialogs();
+            messagesController.loadUserInfo(UserConfig.getInstance(currentAccount).getCurrentUser(), false, classGuid);
             getContactsController().checkInviteText();
             getMediaDataController().loadRecents(MediaDataController.TYPE_FAVE, false, true, false);
             getMediaDataController().checkFeaturedStickers();
+            for (String emoji : messagesController.diceEmojies) {
+                getMediaDataController().loadDiceStickers(emoji, true);
+            }
             dialogsLoaded[currentAccount] = true;
         }
         getMessagesController().loadPinnedDialogs(folderId, 0, null);
@@ -2980,7 +2984,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     filterTabsView.resetTabId();
                 }
                 filterTabsView.removeTabs();
-                filterTabsView.addTab(Integer.MAX_VALUE, LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
+                if (!NekoConfig.hideAllTab) filterTabsView.addTab(Integer.MAX_VALUE, LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
                 for (int a = 0, N = filters.size(); a < N; a++) {
                     filterTabsView.addTab(a, filters.get(a).name);
                 }
@@ -2990,7 +2994,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
                 for (int a = 0; a < viewPages.length; a++) {
                     if (viewPages[a].selectedType != Integer.MAX_VALUE && viewPages[a].selectedType >= filters.size()) {
-                        viewPages[a].selectedType = filters.size() - 1;
+                        viewPages[a].selectedType = filters.size();
                     }
                     viewPages[a].listView.setScrollingTouchSlop(RecyclerView.TOUCH_SLOP_PAGING);
                 }
@@ -3110,7 +3114,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (hasNotContactsPermission && askAboutContacts && getUserConfig().syncContacts && activity.shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)) {
                         AlertDialog.Builder builder = AlertsCreator.createContactsPermissionDialog(activity, param -> {
                             askAboutContacts = param != 0;
-                            MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts).commit();
+                            MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts).apply();
                             askForPermissons(false);
                         });
                         showDialog(permissionDialog = builder.create());
@@ -3681,6 +3685,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
             return false;
         }
+        if (actionBar.isSearchFieldVisible()) {
+            return false;
+        }
         DialogsAdapter dialogsAdapter = (DialogsAdapter) adapter;
         ArrayList<TLRPC.Dialog> dialogs = getDialogsArray(currentAccount, dialogsType, folderId, dialogsListFrozen);
         position = dialogsAdapter.fixPosition(position);
@@ -3887,7 +3894,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                 boolean hintShowed = preferences.getBoolean("archivehint_l", false) || SharedConfig.archiveHidden;
                 if (!hintShowed) {
-                    preferences.edit().putBoolean("archivehint_l", true).commit();
+                    preferences.edit().putBoolean("archivehint_l", true).apply();
                 }
                 int undoAction;
                 if (hintShowed) {
@@ -4650,7 +4657,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (alert) {
                 AlertDialog.Builder builder = AlertsCreator.createContactsPermissionDialog(activity, param -> {
                     askAboutContacts = param != 0;
-                    MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts).commit();
+                    MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts).apply();
                     askForPermissons(false);
                 });
                 showDialog(permissionDialog = builder.create());
@@ -4719,7 +4726,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         if (grantResults[a] == PackageManager.PERMISSION_GRANTED) {
                             getContactsController().forceImportContacts();
                         } else {
-                            MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts = false).commit();
+                            MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts", askAboutContacts = false).apply();
                         }
                         break;
                     case Manifest.permission.WRITE_EXTERNAL_STORAGE:
@@ -4903,14 +4910,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void showFiltersHint() {
-        if (askingForPermissions || !getMessagesController().showFiltersTooltip || filterTabsView == null || filterTabsView.getVisibility() == View.VISIBLE || isPaused || !getUserConfig().filtersLoaded) {
+        if (askingForPermissions || !getMessagesController().dialogFiltersLoaded || !getMessagesController().showFiltersTooltip || filterTabsView == null || filterTabsView.getVisibility() == View.VISIBLE || isPaused || !getUserConfig().filtersLoaded) {
             return;
         }
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         if (preferences.getBoolean("filterhint", false)) {
             return;
         }
-        preferences.edit().putBoolean("filterhint", true).commit();
+        preferences.edit().putBoolean("filterhint", true).apply();
         AndroidUtilities.runOnUIThread(() -> getUndoView().showWithAction(0, UndoView.ACTION_FILTERS_AVAILABLE, null, () -> presentFragment(new FiltersSetupActivity())), 1000);
     }
 
@@ -5207,7 +5214,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     @Override
-    public ThemeDescription[] getThemeDescriptions() {
+    public ArrayList<ThemeDescription> getThemeDescriptions() {
         ThemeDescription.ThemeDescriptionDelegate cellDelegate = () -> {
             for (int b = 0; b < 3; b++) {
                 RecyclerListView list;
@@ -5505,8 +5512,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         arrayList.add(new ThemeDescription(sideMenu, ThemeDescription.FLAG_IMAGECOLOR, new Class[]{DrawerActionCell.class}, new String[]{"textView"}, null, null, null, Theme.key_chats_menuItemIcon));
         arrayList.add(new ThemeDescription(sideMenu, 0, new Class[]{DrawerActionCell.class}, new String[]{"textView"}, null, null, null, Theme.key_chats_menuItemText));
-        arrayList.add(new ThemeDescription(sideMenu, 0, new Class[]{DrawerActionCheckCell.class}, new String[]{"textView"}, null, null, null, Theme.key_chats_menuItemText));
-        arrayList.add(new ThemeDescription(sideMenu, 0, new Class[]{DrawerActionCell.class}, new String[]{"arrowView"}, null, null, null, Theme.key_chats_menuItemText));
 
         arrayList.add(new ThemeDescription(sideMenu, 0, new Class[]{DrawerUserCell.class}, new String[]{"textView"}, null, null, null, Theme.key_chats_menuItemText));
         arrayList.add(new ThemeDescription(sideMenu, ThemeDescription.FLAG_TEXTCOLOR, new Class[]{DrawerUserCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_chats_unreadCounterText));
@@ -5624,7 +5629,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         arrayList.add(new ThemeDescription(null, 0, null, null, null, null, Theme.key_player_button));
         arrayList.add(new ThemeDescription(null, 0, null, null, null, null, Theme.key_player_buttonActive));
 
-        return arrayList.toArray(new ThemeDescription[0]);
+        return arrayList;
     }
 
     @Override

@@ -270,7 +270,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
             long crashed_time = preferences.getLong("intro_crashed_time", 0);
             boolean fromIntro = intent.getBooleanExtra("fromIntro", false);
             if (fromIntro) {
-                preferences.edit().putLong("intro_crashed_time", 0).commit();
+                preferences.edit().putLong("intro_crashed_time", 0).apply();
             }
             if (!isProxy && Math.abs(crashed_time - System.currentTimeMillis()) >= 60 * 2 * 1000 && intent != null && !fromIntro) {
                 preferences = ApplicationLoader.applicationContext.getSharedPreferences("logininfo2", MODE_PRIVATE);
@@ -616,7 +616,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         presentFragment(new ChannelCreateActivity(args));
                     } else {
                         presentFragment(new ActionIntroActivity(ActionIntroActivity.ACTION_TYPE_CHANNEL_CREATE));
-                        preferences.edit().putBoolean("channel_intro", true).commit();
+                        preferences.edit().putBoolean("channel_intro", true).apply();
                     }
                     drawerLayoutContainer.closeDrawer(false);
                 } else if (id == 6) {
@@ -923,7 +923,6 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.needShowPlayServicesAlert);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.fileDidLoad);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.fileDidFailToLoad);
-            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.dialogFiltersUpdated);
         }
         currentAccount = UserConfig.selectedAccount;
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.appDidLogout);
@@ -936,7 +935,6 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.needShowPlayServicesAlert);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.fileDidLoad);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.fileDidFailToLoad);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.dialogFiltersUpdated);
     }
 
     private void checkLayout() {
@@ -1212,11 +1210,6 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                                     parcelable = Uri.parse(parcelable.toString());
                                 }
                                 Uri uri = (Uri) parcelable;
-                                if (uri != null) {
-                                    if (AndroidUtilities.isInternalUri(uri)) {
-                                        error = true;
-                                    }
-                                }
                                 if (!error) {
                                     if (uri != null && (type != null && type.startsWith("image/") || uri.toString().toLowerCase().endsWith(".jpg"))) {
                                         if (photoPathsArray == null) {
@@ -2701,7 +2694,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
         }
 
         if (contactsToSend != null && contactsToSend.size() == 1 && !mainFragmentsStack.isEmpty()) {
-            PhonebookShareAlert alert = new PhonebookShareAlert(mainFragmentsStack.get(mainFragmentsStack.size() - 1), null, null, contactsToSendUri, null, null);
+            PhonebookShareAlert alert = new PhonebookShareAlert(mainFragmentsStack.get(mainFragmentsStack.size() - 1), null, null, contactsToSendUri, null, null, null);
             alert.setDelegate((user, notify, scheduleDate) -> {
                 if (fragment != null) {
                     actionBarLayout.presentFragment(fragment, true, false, true, false);
@@ -2725,7 +2718,16 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         sendingText = null;
                     }
                 } else {
-
+                    if (videoPath != null) {
+                        String caption = null;
+                        if (sendingText != null && sendingText.length() <= 1024) {
+                            caption = sendingText;
+                            sendingText = null;
+                        }
+                        ArrayList<String> arrayList = new ArrayList<>();
+                        arrayList.add(videoPath);
+                        SendMessagesHelper.prepareSendingDocuments(accountInstance, arrayList, arrayList, null, caption, null, did, null, null, null, true, 0);
+                    }
                 }
                 if (photoPathsArray != null) {
                     if (sendingText != null && sendingText.length() <= 1024 && photoPathsArray.size() == 1) {
@@ -2791,6 +2793,9 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.wasUnableToFindCurrentLocation);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.openArticle);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.hasNewContactsToImport);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.needShowPlayServicesAlert);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.fileDidLoad);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.fileDidFailToLoad);
         }
 
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.needShowAlert);
@@ -3472,7 +3477,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         freeSpace = statFs.getAvailableBlocksLong() * statFs.getBlockSizeLong();
                     }
                     if (freeSpace < 1024 * 1024 * 100) {
-                        preferences.edit().putLong("last_space_check", System.currentTimeMillis()).commit();
+                        preferences.edit().putLong("last_space_check", System.currentTimeMillis()).apply();
                         AndroidUtilities.runOnUIThread(() -> {
                             try {
                                 AlertsCreator.createFreeSpaceDialog(LaunchActivity.this).show();
@@ -3539,7 +3544,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
             });
             localeDialog = showAlertDialog(builder);
             SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-            preferences.edit().putString("language_showed2", systemLang).commit();
+            preferences.edit().putString("language_showed2", systemLang).apply();
         } catch (Exception e) {
             FileLog.e(e);
         }

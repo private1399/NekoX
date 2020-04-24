@@ -11,9 +11,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -28,6 +30,16 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
+import java.io.File;
+import java.util.ArrayList;
+
+import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.FileUtil;
+import tw.nekomimi.nekogram.utils.LocaleUtil;
+import tw.nekomimi.nekogram.utils.ShareUtil;
+import tw.nekomimi.nekogram.utils.UIUtil;
+import tw.nekomimi.nekogram.utils.ZipUtil;
+
 public class NekoXSettingActivity extends BaseFragment {
 
     private RecyclerListView listView;
@@ -36,12 +48,11 @@ public class NekoXSettingActivity extends BaseFragment {
     private int rowCount;
 
     private int developerSettingsRow;
+
+    private int fetchAndExportLangRow;
+
     private int disableFlagSecureRow;
     private int disableScreenshotDetectionRow;
-
-    private int loginSettingsRow;
-    private int showTestBackendRow;
-    private int showBotLoginRow;
 
     @Override
     public boolean onFragmentCreate() {
@@ -89,6 +100,12 @@ public class NekoXSettingActivity extends BaseFragment {
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT));
         listView.setOnItemClickListener((view, position, x, y) -> {
 
+            if (position == fetchAndExportLangRow) {
+
+                fetchAndExportLang();
+
+            }
+
             if (position == disableFlagSecureRow) {
                 NekoXConfig.toggleDisableFlagSecure();
                 if (view instanceof TextCheckCell) {
@@ -98,16 +115,6 @@ public class NekoXSettingActivity extends BaseFragment {
                 NekoXConfig.toggleDisableScreenshotDetection();
                 if (view instanceof TextCheckCell) {
                     ((TextCheckCell) view).setChecked(NekoXConfig.disableScreenshotDetection);
-                }
-            } else if (position == showTestBackendRow) {
-                NekoXConfig.toggleShowTestBackend();
-                if (view instanceof TextCheckCell) {
-                    ((TextCheckCell) view).setChecked(NekoXConfig.showTestBackend);
-                }
-            } else if (position == showBotLoginRow) {
-                NekoXConfig.toggleShowBotLogin();
-                if (view instanceof TextCheckCell) {
-                    ((TextCheckCell) view).setChecked(NekoXConfig.showBotLogin);
                 }
             }
 
@@ -126,57 +133,98 @@ public class NekoXSettingActivity extends BaseFragment {
 
     private void updateRows() {
         rowCount = 0;
+
         developerSettingsRow = rowCount++;
+
+        fetchAndExportLangRow = rowCount++;
+
         disableFlagSecureRow = rowCount++;
         disableScreenshotDetectionRow = rowCount++;
-
-        loginSettingsRow = rowCount++;
-        showTestBackendRow = rowCount++;
-        showBotLoginRow = rowCount++;
 
         if (listAdapter != null) {
             listAdapter.notifyDataSetChanged();
         }
     }
 
+    public void fetchAndExportLang() {
+
+        AlertDialog pro = new AlertDialog(getParentActivity(), 3);
+
+        pro.show();
+
+        UIUtil.runOnIoDispatcher(() -> {
+
+            LocaleUtil.fetchAndExportLang();
+
+            File zipFile = new File(ApplicationLoader.applicationContext.getCacheDir(), "languages.zip");
+
+            FileUtil.delete(zipFile);
+
+            File[] files = LocaleUtil.cacheDir.listFiles();
+
+            if (files != null) {
+
+                ZipUtil.makeZip(zipFile, files);
+
+                AndroidUtilities.runOnUIThread(() -> {
+
+                    pro.dismiss();
+
+                    ShareUtil.shareFile(getParentActivity(), zipFile);
+
+                });
+
+            } else {
+
+                AlertUtil.showToast("No files");
+
+                AndroidUtilities.runOnUIThread(pro::dismiss);
+
+            }
+
+        });
+
+    }
+
     @Override
-    public ThemeDescription[] getThemeDescriptions() {
-        return new ThemeDescription[]{
-                new ThemeDescription(listView, ThemeDescription.FLAG_CELLBACKGROUNDCOLOR, new Class[]{EmptyCell.class, TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, TextDetailSettingsCell.class, NotificationsCheckCell.class}, null, null, null, Theme.key_windowBackgroundWhite),
-                new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundGray),
+    public ArrayList<ThemeDescription> getThemeDescriptions() {
+        ArrayList<ThemeDescription> themeDescriptions = new ArrayList<>();
+        themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_CELLBACKGROUNDCOLOR, new Class[]{EmptyCell.class, TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, TextDetailSettingsCell.class, NotificationsCheckCell.class}, null, null, null, Theme.key_windowBackgroundWhite));
+        themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundGray));
 
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_avatar_backgroundActionBarBlue),
-                new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_avatar_backgroundActionBarBlue),
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_avatar_actionBarIconBlue),
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle),
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_avatar_actionBarSelectorBlue),
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SUBMENUBACKGROUND, null, null, null, null, Theme.key_actionBarDefaultSubmenuBackground),
-                new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SUBMENUITEM, null, null, null, null, Theme.key_actionBarDefaultSubmenuItem),
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_avatar_backgroundActionBarBlue));
+        themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_avatar_backgroundActionBarBlue));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_avatar_actionBarIconBlue));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_avatar_actionBarSelectorBlue));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SUBMENUBACKGROUND, null, null, null, null, Theme.key_actionBarDefaultSubmenuBackground));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SUBMENUITEM, null, null, null, null, Theme.key_actionBarDefaultSubmenuItem));
 
-                new ThemeDescription(listView, ThemeDescription.FLAG_SELECTOR, null, null, null, null, Theme.key_listSelector),
+        themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_SELECTOR, null, null, null, null, Theme.key_listSelector));
 
-                new ThemeDescription(listView, 0, new Class[]{View.class}, Theme.dividerPaint, null, null, Theme.key_divider),
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{View.class}, Theme.dividerPaint, null, null, Theme.key_divider));
 
-                new ThemeDescription(listView, ThemeDescription.FLAG_BACKGROUNDFILTER, new Class[]{ShadowSectionCell.class}, null, null, null, Theme.key_windowBackgroundGrayShadow),
+        themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_BACKGROUNDFILTER, new Class[]{ShadowSectionCell.class}, null, null, null, Theme.key_windowBackgroundGrayShadow));
 
-                new ThemeDescription(listView, 0, new Class[]{TextSettingsCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText),
-                new ThemeDescription(listView, 0, new Class[]{TextSettingsCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteValueText),
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextSettingsCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextSettingsCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteValueText));
 
-                new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText),
-                new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2),
-                new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrack),
-                new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrackChecked),
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrack));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{NotificationsCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrackChecked));
 
-                new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText),
-                new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2),
-                new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrack),
-                new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrackChecked),
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrack));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCheckCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrackChecked));
 
-                new ThemeDescription(listView, 0, new Class[]{HeaderCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlueHeader),
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{HeaderCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlueHeader));
 
-                new ThemeDescription(listView, 0, new Class[]{TextDetailSettingsCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText),
-                new ThemeDescription(listView, 0, new Class[]{TextDetailSettingsCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2),
-        };
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextDetailSettingsCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
+        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextDetailSettingsCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
+
+        return themeDescriptions;
     }
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
@@ -203,8 +251,6 @@ public class NekoXSettingActivity extends BaseFragment {
                     HeaderCell headerCell = (HeaderCell) holder.itemView;
                     if (position == developerSettingsRow) {
                         headerCell.setText(LocaleController.getString("DeveloperSettings", R.string.DeveloperSettings));
-                    } else if (position == loginSettingsRow) {
-                        headerCell.setText(LocaleController.getString("LoginSettings", R.string.LoginSettings));
                     }
                     break;
                 }
@@ -213,15 +259,18 @@ public class NekoXSettingActivity extends BaseFragment {
                     TextCheckCell textCell = (TextCheckCell) holder.itemView;
                     textCell.setEnabled(true, null);
                     if (position == disableFlagSecureRow) {
-                        textCell.setTextAndCheck(LocaleController.getString("DisableFlagSecure", R.string.DisableFlagSecure), NekoXConfig.disableFlagSecure, true);
+                        textCell.setTextAndCheck("Disable Flag Secure", NekoXConfig.disableFlagSecure, true);
                     } else if (position == disableScreenshotDetectionRow) {
-                        textCell.setTextAndCheck(LocaleController.getString("DisableScreenshotDetection", R.string.DisableScreenshotDetection), NekoXConfig.disableScreenshotDetection, false);
-                    } else if (position == showTestBackendRow) {
-                        textCell.setTextAndCheck(LocaleController.getString("ShowTestBackend", R.string.ShowTestBackend), NekoXConfig.showTestBackend, true);
-                    } else if (position == showBotLoginRow) {
-                        textCell.setTextAndCheck(LocaleController.getString("ShowBotLogin", R.string.ShowBotLogin), NekoXConfig.showBotLogin, false);
+                        textCell.setTextAndCheck("Disable Screenshot Detection", NekoXConfig.disableScreenshotDetection, false);
                     }
                     break;
+                }
+
+                case 2: {
+                    TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
+                    if (position == fetchAndExportLangRow) {
+                        textCell.setText("Export Builtin Languages", true);
+                    }
                 }
 
             }
@@ -231,7 +280,9 @@ public class NekoXSettingActivity extends BaseFragment {
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int position = holder.getAdapterPosition();
-            return position == disableFlagSecureRow || position == disableScreenshotDetectionRow || position == showTestBackendRow || position == showBotLoginRow;
+            return position == fetchAndExportLangRow ||
+                    position == disableFlagSecureRow ||
+                    position == disableScreenshotDetectionRow;
         }
 
         @Override
@@ -272,11 +323,12 @@ public class NekoXSettingActivity extends BaseFragment {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == developerSettingsRow || position == loginSettingsRow) {
+            if (position == developerSettingsRow) {
                 return 4;
-            } else if (position == disableFlagSecureRow || position == disableScreenshotDetectionRow ||
-                    position == showTestBackendRow || position == showBotLoginRow) {
+            } else if (position == disableFlagSecureRow || position == disableScreenshotDetectionRow) {
                 return 3;
+            } else if (position == fetchAndExportLangRow) {
+                return 2;
             }
             return 6;
         }

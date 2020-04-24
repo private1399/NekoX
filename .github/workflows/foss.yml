@@ -9,9 +9,15 @@ jobs:
   fossBuild:
     name: Foss Build
     runs-on: ubuntu-latest
-    if: "contains(github.event.head_commit.message, '[RELEASE]')"
+    if: "contains(github.event.head_commit.message, '[RELEASE]') || contains(github.event.head_commit.message, '[N]')"
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.gradle
+          key: gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8

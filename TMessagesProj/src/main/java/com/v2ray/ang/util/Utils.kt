@@ -1,21 +1,14 @@
 package com.v2ray.ang.util
 
-import android.app.ActivityManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.text.TextUtils
 import android.util.Base64
-import android.util.Patterns
-import android.webkit.URLUtil
-import com.google.zxing.WriterException
+import org.json.JSONObject
 import org.telegram.messenger.ApplicationLoader
 import java.io.IOException
 import java.net.Socket
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.net.UnknownHostException
-import java.util.*
 
 
 object Utils {
@@ -38,22 +31,38 @@ object Utils {
      * base64 decode
      */
     fun decode(text: String): String {
-        runCatching {
-            return Base64.decode(text, Base64.NO_PADDING or Base64.URL_SAFE or Base64.NO_WRAP).toString(charset("UTF-8"))
+        return runCatching {
+            Base64.decode(text, Base64.URL_SAFE or Base64.NO_WRAP).toString(charset("UTF-8"))
         }.recoverCatching {
-            return Base64.decode(text, Base64.NO_PADDING).toString(charset("UTF-8"))
+            Base64.decode(text, Base64.NO_WRAP).toString(charset("UTF-8"))
         }.recoverCatching {
-            return Base64.decode(text, Base64.NO_WRAP).toString(charset("UTF-8"))
-        }
-        return ""
+            Base64.decode(text, Base64.DEFAULT).toString(charset("UTF-8"))
+        }.getOrThrow()
     }
+
+    fun decodeJson(text: String): String {
+        return runCatching {
+            Base64.decode(text, Base64.URL_SAFE or Base64.NO_WRAP).toString(charset("UTF-8")).also {
+                JSONObject(it)
+            }
+        }.recoverCatching {
+            Base64.decode(text, Base64.NO_WRAP).toString(charset("UTF-8")).also {
+                JSONObject(it)
+            }
+        }.recoverCatching {
+            Base64.decode(text, Base64.DEFAULT).toString(charset("UTF-8")).also {
+                JSONObject(it)
+            }
+        }.getOrThrow()
+    }
+
 
     /**
      * base64 encode
      */
     fun encode(text: String): String {
         try {
-            return Base64.encodeToString(text.toByteArray(charset("UTF-8")), Base64.NO_WRAP or Base64.URL_SAFE)
+            return Base64.encodeToString(text.toByteArray(charset("UTF-8")), Base64.NO_WRAP)
         } catch (e: Exception) {
             e.printStackTrace()
             return ""
@@ -106,6 +115,7 @@ object Utils {
         return (isIpv4Address(value) || isIpv6Address(value))
     }
 
+    @JvmStatic
     fun isIpv4Address(value: String): Boolean {
         val regV4 = Regex("^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$")
         return regV4.matches(value)

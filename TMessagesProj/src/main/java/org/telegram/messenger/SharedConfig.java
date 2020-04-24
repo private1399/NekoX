@@ -25,6 +25,7 @@ import com.v2ray.ang.V2RayConfig;
 import com.v2ray.ang.dto.AngConfig;
 import com.v2ray.ang.util.Utils;
 
+import org.dizitart.no2.objects.filters.ObjectFilters;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,16 +37,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import cn.hutool.core.util.StrUtil;
 import okhttp3.HttpUrl;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.NekoXConfig;
 import tw.nekomimi.nekogram.ProxyManager;
 import tw.nekomimi.nekogram.ShadowsocksLoader;
 import tw.nekomimi.nekogram.ShadowsocksRLoader;
 import tw.nekomimi.nekogram.VmessLoader;
+import tw.nekomimi.nekogram.sub.SubInfo;
+import tw.nekomimi.nekogram.sub.SubManager;
 import tw.nekomimi.nekogram.utils.FileUtil;
-import tw.nekomimi.nekogram.utils.ProxyUtil;
-import tw.nekomimi.nekogram.utils.StrUtil;
+import tw.nekomimi.nekogram.utils.ThreadUtil;
 import tw.nekomimi.nekogram.utils.UIUtil;
 
 import static com.v2ray.ang.V2RayConfig.SSR_PROTOCOL;
@@ -165,7 +166,7 @@ public class SharedConfig {
 
         }
 
-        public boolean isPublic;
+        public long subId;
 
         public ProxyInfo() {
             address = "";
@@ -194,7 +195,13 @@ public class SharedConfig {
             }
         }
 
-        private String getType() {
+        public String getAddress() {
+
+            return address + ":" + port;
+
+        }
+
+        public String getType() {
 
             if (!StrUtil.isBlank(secret)) {
 
@@ -210,20 +217,42 @@ public class SharedConfig {
 
         public String getTitle() {
 
-            if (StrUtil.isBlank(remarks)) {
+            StringBuilder builder = new StringBuilder();
 
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[" + getType() + "]") + " " + address + ":" + port;
+            builder.append("[ ");
+
+            if (subId != 0L) {
+
+                builder.append(SubManager.getSubList().find(ObjectFilters.eq("id", subId)).firstOrDefault().displayName());
 
             } else {
 
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[" + getType() + "]") + " " + remarks;
+                builder.append(getType());
 
             }
 
+            builder.append(" ] ");
+
+            if (StrUtil.isBlank(getRemarks())) {
+
+                builder.append(getAddress());
+
+            } else {
+
+                builder.append(getRemarks());
+
+            }
+
+            return builder.toString();
+
         }
 
+        private String remarks;
+
         public String getRemarks() {
+
             return remarks;
+
         }
 
         public void setRemarks(String remarks) {
@@ -233,13 +262,11 @@ public class SharedConfig {
             }
         }
 
-        private String remarks;
-
         public String toUrl() {
 
             HttpUrl.Builder builder = HttpUrl.parse(StrUtil.isBlank(secret) ?
                     "https://t.me/socks" : "https://t.me/proxy").newBuilder()
-                    .addQueryParameter("address", address)
+                    .addQueryParameter("server", address)
                     .addQueryParameter("port", port + "");
 
             if (!StrUtil.isBlank(secret)) {
@@ -265,17 +292,27 @@ public class SharedConfig {
 
         public static ProxyInfo fromUrl(String url) {
 
-            HttpUrl lnk = HttpUrl.parse(url);
+            Uri lnk = Uri.parse(url);
 
-            return new ProxyInfo(lnk.queryParameter("address"),
-                    Utilities.parseInt(lnk.queryParameter("port")),
-                    lnk.queryParameter("user"),
-                    lnk.queryParameter("pass"),
-                    lnk.queryParameter("secret"));
+            if (lnk == null) throw new IllegalArgumentException(url);
+
+            return new ProxyInfo(lnk.getQueryParameter("server"),
+                    Utilities.parseInt(lnk.getQueryParameter("port")),
+                    lnk.getQueryParameter("user"),
+                    lnk.getQueryParameter("pass"),
+                    lnk.getQueryParameter("secret"));
 
         }
 
         public JSONObject toJson() throws JSONException {
+
+            JSONObject object = toJsonInternal();
+
+            return object;
+
+        }
+
+        public JSONObject toJsonInternal() throws JSONException {
 
             JSONObject obj = new JSONObject();
 
@@ -417,7 +454,7 @@ public class SharedConfig {
         public abstract void stop();
 
         @Override
-        public abstract String getTitle();
+        public abstract String getAddress();
 
         @Override
         public abstract String toUrl();
@@ -429,7 +466,10 @@ public class SharedConfig {
         public abstract void setRemarks(String remarks);
 
         @Override
-        public abstract JSONObject toJson() throws JSONException;
+        public abstract String getType();
+
+        @Override
+        public abstract JSONObject toJsonInternal() throws JSONException;
 
     }
 
@@ -451,18 +491,8 @@ public class SharedConfig {
         }
 
         @Override
-        public String getTitle() {
-
-            if (StrUtil.isBlank(getRemarks())) {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[Vmess]") + " " + bean.getAddress() + ":" + bean.getPort();
-
-            } else {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[Vmess]") + " " + getRemarks();
-
-            }
-
+        public String getAddress() {
+            return bean.getAddress() + ":" + bean.getPort();
         }
 
         @Override
@@ -475,22 +505,19 @@ public class SharedConfig {
         @Override
         public void start() {
 
-            stop();
+            if (loader != null) return;
 
-            port = ProxyManager.getPortForBean(bean);
+            VmessLoader loader = new VmessLoader();
 
-            try {
+            loader.initConfig(bean);
 
-                VmessLoader loader = new VmessLoader();
-                loader.initConfig(bean, port);
+            port = loader.start();
 
-                loader.start();
+            this.loader = loader;
 
-                this.loader = loader;
+            if (SharedConfig.proxyEnabled && SharedConfig.currentProxy == this) {
 
-            } catch (Exception e) {
-
-                FileLog.e(e);
+                ConnectionsManager.setProxySettings(true,address,port,username,password,secret);
 
             }
 
@@ -527,7 +554,12 @@ public class SharedConfig {
         }
 
         @Override
-        public JSONObject toJson() throws JSONException {
+        public String getType() {
+            return "Vmess";
+        }
+
+        @Override
+        public JSONObject toJsonInternal() throws JSONException {
 
             JSONObject obj = new JSONObject();
             obj.put("type", "vmess");
@@ -566,18 +598,8 @@ public class SharedConfig {
         }
 
         @Override
-        public String getTitle() {
-
-            if (StrUtil.isBlank(getRemarks())) {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[SS]") + " " + bean.getHost() + ":" + bean.getRemotePort();
-
-            } else {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[SS]") + " " + getRemarks();
-
-            }
-
+        public String getAddress() {
+            return bean.getHost() + ":" + bean.getRemotePort();
         }
 
         @Override
@@ -590,7 +612,7 @@ public class SharedConfig {
         @Override
         public void start() {
 
-            stop();
+            if (loader != null) return;
 
             port = ProxyManager.getPortForBean(bean);
             ShadowsocksLoader loader = new ShadowsocksLoader();
@@ -600,12 +622,20 @@ public class SharedConfig {
 
             this.loader = loader;
 
+            if (SharedConfig.proxyEnabled && SharedConfig.currentProxy == this) {
+
+                ConnectionsManager.setProxySettings(true,address,port,username,password,secret);
+
+            }
+
         }
 
         @Override
         public void stop() {
 
             if (loader != null) {
+
+                FileLog.d(getTitle() + " stopped");
 
                 ShadowsocksLoader loader = this.loader;
 
@@ -634,7 +664,12 @@ public class SharedConfig {
         }
 
         @Override
-        public JSONObject toJson() throws JSONException {
+        public String getType() {
+            return "SS";
+        }
+
+        @Override
+        public JSONObject toJsonInternal() throws JSONException {
 
             JSONObject obj = new JSONObject();
             obj.put("type", "shadowsocks");
@@ -675,18 +710,8 @@ public class SharedConfig {
         }
 
         @Override
-        public String getTitle() {
-
-            if (StrUtil.isBlank(getRemarks())) {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[SSR]") + " " + bean.getHost() + ":" + bean.getRemotePort();
-
-            } else {
-
-                return (isPublic ? LocaleController.getString("PublicPrefix", R.string.PublicPrefix) : "[SSR]") + " " + getRemarks();
-
-            }
-
+        public String getAddress() {
+            return bean.getHost() + ":" + bean.getRemotePort();
         }
 
         @Override
@@ -699,7 +724,7 @@ public class SharedConfig {
         @Override
         public void start() {
 
-            stop();
+            if (loader != null) return;
 
             port = ProxyManager.getPortForBean(bean);
             ShadowsocksRLoader loader = new ShadowsocksRLoader();
@@ -708,6 +733,12 @@ public class SharedConfig {
             loader.start();
 
             this.loader = loader;
+
+            if (SharedConfig.proxyEnabled && SharedConfig.currentProxy == this) {
+
+                ConnectionsManager.setProxySettings(true,address,port,username,password,secret);
+
+            }
 
         }
 
@@ -742,7 +773,12 @@ public class SharedConfig {
         }
 
         @Override
-        public JSONObject toJson() throws JSONException {
+        public String getType() {
+            return "SSR";
+        }
+
+        @Override
+        public JSONObject toJsonInternal() throws JSONException {
 
             JSONObject obj = new JSONObject();
             obj.put("type", "shadowsocksr");
@@ -766,6 +802,12 @@ public class SharedConfig {
     }
 
     public static LinkedList<ProxyInfo> proxyList = new LinkedList<>();
+
+    public static LinkedList<ProxyInfo> getProxyList() {
+
+        return new LinkedList<>(proxyList);
+
+    }
 
     private static boolean proxyListLoaded;
     public static ProxyInfo currentProxy;
@@ -798,7 +840,7 @@ public class SharedConfig {
                 editor.putInt("textSelectionHintShows", textSelectionHintShows);
                 editor.putInt("scheduledOrNoSoundHintShows", scheduledOrNoSoundHintShows);
                 editor.putInt("lockRecordAudioVideoHint", lockRecordAudioVideoHint);
-                editor.commit();
+                editor.apply();
             } catch (Exception e) {
                 FileLog.e(e);
             }
@@ -1020,7 +1062,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("suggestStickers", suggestStickers);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setSearchMessagesAsListUsed(boolean searchMessagesAsListUsed) {
@@ -1028,7 +1070,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("searchMessagesAsListUsed", searchMessagesAsListUsed);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setStickersReorderingHintUsed(boolean stickersReorderingHintUsed) {
@@ -1036,56 +1078,56 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("stickersReorderingHintUsed", stickersReorderingHintUsed);
-        editor.commit();
+        editor.apply();
     }
 
     public static void increaseTextSelectionHintShowed() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("textSelectionHintShows", ++textSelectionHintShows);
-        editor.commit();
+        editor.apply();
     }
 
     public static void removeTextSelectionHint() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("textSelectionHintShows", 3);
-        editor.commit();
+        editor.apply();
     }
 
     public static void increaseScheduledOrNoSuoundHintShowed() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("scheduledOrNoSoundHintShows", ++scheduledOrNoSoundHintShows);
-        editor.commit();
+        editor.apply();
     }
 
     public static void removeScheduledOrNoSuoundHint() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("scheduledOrNoSoundHintShows", 3);
-        editor.commit();
+        editor.apply();
     }
 
     public static void increaseLockRecordAudioVideoHintShowed() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("lockRecordAudioVideoHint", ++lockRecordAudioVideoHint);
-        editor.commit();
+        editor.apply();
     }
 
     public static void removeLockRecordAudioVideoHint() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("lockRecordAudioVideoHint", 3);
-        editor.commit();
+        editor.apply();
     }
 
     public static void increaseSearchAsListHintShows() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("searchMessagesAsListHintShows", ++searchMessagesAsListHintShows);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setKeepMedia(int value) {
@@ -1093,7 +1135,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("keep_media", keepMedia);
-        editor.commit();
+        editor.apply();
     }
 
     public static void checkKeepMedia() {
@@ -1138,7 +1180,7 @@ public class SharedConfig {
             SharedPreferences preferences = MessagesController.getGlobalMainSettings();
             SharedPreferences.Editor editor = preferences.edit();
             editor.putInt("lastKeepMediaCheckTime", lastKeepMediaCheckTime);
-            editor.commit();
+            editor.apply();
         });
     }
 
@@ -1147,7 +1189,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("loopStickers", loopStickers);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleBigEmoji() {
@@ -1155,7 +1197,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("allowBigEmoji", allowBigEmoji);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleShuffleMusic(int type) {
@@ -1169,7 +1211,7 @@ public class SharedConfig {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("shuffleMusic", shuffleMusic);
         editor.putBoolean("playOrderReversed", playOrderReversed);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleRepeatMode() {
@@ -1180,7 +1222,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("repeatMode", repeatMode);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleSaveToGallery() {
@@ -1188,7 +1230,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("save_gallery", saveToGallery);
-        editor.commit();
+        editor.apply();
         checkSaveToGalleryFiles();
     }
 
@@ -1197,7 +1239,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("autoplay_gif", autoplayGifs);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setUseThreeLinesLayout(boolean value) {
@@ -1205,7 +1247,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("useThreeLinesLayout", useThreeLinesLayout);
-        editor.commit();
+        editor.apply();
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload, true);
     }
 
@@ -1214,7 +1256,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("archiveHidden", archiveHidden);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleAutoplayVideo() {
@@ -1222,7 +1264,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("autoplay_video", autoplayVideo);
-        editor.commit();
+        editor.apply();
     }
 
     public static boolean isSecretMapPreviewSet() {
@@ -1235,7 +1277,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("mapPreviewType", mapPreviewType);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setNoSoundHintShowed(boolean value) {
@@ -1246,7 +1288,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("noSoundHintShowed", noSoundHintShowed);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toogleRaiseToSpeak() {
@@ -1254,7 +1296,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("raise_to_speak", raiseToSpeak);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleCustomTabs() {
@@ -1262,7 +1304,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("custom_tabs", customTabs);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleDirectShare() {
@@ -1270,7 +1312,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("direct_share", directShare);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleStreamMedia() {
@@ -1278,7 +1320,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("streamMedia", streamMedia);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleSortContactsByName() {
@@ -1286,7 +1328,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("sortContactsByName", sortContactsByName);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleSortFilesByName() {
@@ -1294,7 +1336,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("sortFilesByName", sortFilesByName);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleStreamAllVideo() {
@@ -1302,7 +1344,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("streamAllVideo", streamAllVideo);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleStreamMkv() {
@@ -1310,7 +1352,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("streamMkv", streamMkv);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleSaveStreamMedia() {
@@ -1318,7 +1360,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("saveStreamMedia", saveStreamMedia);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleSmoothKeyboard() {
@@ -1326,7 +1368,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("smoothKeyboard", smoothKeyboard);
-        editor.commit();
+        editor.apply();
     }
 
     public static void togglePauseMusicOnRecord() {
@@ -1334,7 +1376,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("pauseMusicOnRecord", pauseMusicOnRecord);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleInappCamera() {
@@ -1342,7 +1384,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("inappCamera", inappCamera);
-        editor.commit();
+        editor.apply();
     }
 
     public static void toggleRoundCamera16to9() {
@@ -1350,7 +1392,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("roundCamera16to9", roundCamera16to9);
-        editor.commit();
+        editor.apply();
     }
 
     public static void setDistanceSystemType(int type) {
@@ -1358,7 +1400,7 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("distanceSystemType", distanceSystemType);
-        editor.commit();
+        editor.apply();
         LocaleController.resetImperialSystemType();
     }
 
@@ -1380,33 +1422,35 @@ public class SharedConfig {
 
     public static void setProxyEnable(boolean enable) {
 
+        proxyEnabled = enable;
+
+        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+
+        preferences.edit().putBoolean("proxy_enabled", enable).apply();
+
+        ProxyInfo info = currentProxy;
+
+        if (info == null) {
+
+            info = new ProxyInfo();
+
+        }
+
+        ProxyInfo finalInfo = info;
+
         UIUtil.runOnIoDispatcher(() -> {
 
-            proxyEnabled = enable;
+            if (enable && finalInfo instanceof ExternalSocks5Proxy) {
 
-            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+                ((ExternalSocks5Proxy) finalInfo).start();
 
-            preferences.edit().putBoolean("proxy_enabled", enable).commit();
+            } else if (!enable && finalInfo instanceof ExternalSocks5Proxy) {
 
-            ProxyInfo info = currentProxy;
-
-            if (info == null) {
-
-                info = new ProxyInfo();
+                ((ExternalSocks5Proxy) finalInfo).stop();
 
             }
 
-            if (enable && info instanceof ExternalSocks5Proxy) {
-
-                ((ExternalSocks5Proxy) info).start();
-
-            } else if (!enable && info instanceof ExternalSocks5Proxy) {
-
-                ((ExternalSocks5Proxy) info).stop();
-
-            }
-
-            ConnectionsManager.setProxySettings(enable, info.address, info.port, info.username, info.password, info.secret);
+            ConnectionsManager.setProxySettings(enable, finalInfo.address, finalInfo.port, finalInfo.username, finalInfo.password, finalInfo.secret);
 
         });
 
@@ -1418,9 +1462,7 @@ public class SharedConfig {
 
         MessagesController.getGlobalMainSettings().edit()
                 .putInt("current_proxy", info == null ? 0 : info.hashCode())
-                .commit();
-
-        saveProxyList();
+                .apply();
 
         setProxyEnable(info != null);
 
@@ -1429,11 +1471,25 @@ public class SharedConfig {
     public static void reloadProxyList() {
         proxyListLoaded = false;
         loadProxyList();
+
+        if (proxyEnabled && currentProxy == null) {
+            setProxyEnable(false);
+        }
+
     }
 
     public static void loadProxyList() {
         if (proxyListLoaded) {
             return;
+        }
+
+        if (!proxyList.isEmpty()) {
+            for (ProxyInfo proxyInfo : proxyList) {
+                if (proxyInfo instanceof ExternalSocks5Proxy) {
+                    ((ExternalSocks5Proxy) proxyInfo).stop();
+                }
+            }
+            ThreadUtil.sleep(500L);
         }
 
         proxyListLoaded = true;
@@ -1442,68 +1498,17 @@ public class SharedConfig {
 
         int current = MessagesController.getGlobalMainSettings().getInt("current_proxy", 0);
 
-        try {
+        for (SubInfo subInfo : SubManager.getSubList().find()) {
 
-            if (!NekoConfig.hidePublicProxy) {
+            if (!subInfo.enable) continue;
 
-                VmessProxy publicProxy = new VmessProxy(VmessLoader.getPublic());
-                publicProxy.isPublic = true;
-                proxyList.add(publicProxy);
+            for (String proxy : subInfo.proxies) {
 
-                if (publicProxy.hashCode() == current) {
+                try {
 
-                    currentProxy = publicProxy;
+                    ProxyInfo info = parseProxyInfo(proxy);
 
-                    publicProxy.start();
-
-                }
-
-            }
-
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-
-
-        File remoteProxyListFile = ProxyUtil.cacheFile;
-
-        if (remoteProxyListFile.isFile() && !NekoConfig.hidePublicProxy) {
-
-            try {
-
-                JSONArray proxyArray = new JSONArray(FileUtil.readUtf8String(remoteProxyListFile));
-
-                for (int a = 0; a < proxyArray.length(); a++) {
-
-                    JSONObject proxyObj = proxyArray.getJSONObject(a);
-
-                    ProxyInfo info;
-
-                    try {
-
-                        if (!proxyObj.isNull("proxy")) {
-
-                            // old remote protocol
-
-                            info = parseProxyInfo(proxyObj.getString("proxy"));
-
-                        } else {
-
-                            info = ProxyInfo.fromJson(proxyObj);
-
-                        }
-
-                    } catch (Exception ex) {
-
-                        FileLog.e("load proxy failed", ex);
-
-                        continue;
-
-                    }
-
-                    info.isPublic = true;
-
-                    proxyList.add(info);
+                    info.subId = subInfo.id;
 
                     if (info.hashCode() == current) {
 
@@ -1511,17 +1516,19 @@ public class SharedConfig {
 
                         if (info instanceof ExternalSocks5Proxy) {
 
-                            ((ExternalSocks5Proxy) info).start();
+                            UIUtil.runOnIoDispatcher(((ExternalSocks5Proxy) info)::start);
 
                         }
 
                     }
 
+                    proxyList.add(info);
+
+                } catch (Exception e) {
+
+                    FileLog.d("load sub proxy failed: " + e);
+
                 }
-
-            } catch (Exception ex) {
-
-                FileLog.e("invalid proxy list json format", ex);
 
             }
 
@@ -1557,9 +1564,6 @@ public class SharedConfig {
 
                     }
 
-                    if (!proxyObj.isNull("internal")) continue;
-                    if (info.getTitle().toLowerCase().contains("nekox.me")) continue;
-
                     proxyList.add(info);
 
                     if (info.hashCode() == current) {
@@ -1568,7 +1572,7 @@ public class SharedConfig {
 
                         if (info instanceof ExternalSocks5Proxy) {
 
-                            ((ExternalSocks5Proxy) info).start();
+                            UIUtil.runOnIoDispatcher(((ExternalSocks5Proxy) info)::start);
 
                         }
 
@@ -1646,17 +1650,7 @@ public class SharedConfig {
                 url.startsWith("tg://socks") ||
                 url.startsWith("https://t.me/proxy") ||
                 url.startsWith("https://t.me/socks")) {
-            url = url
-                    .replace("tg:proxy", "tg://telegram.org")
-                    .replace("tg://proxy", "tg://telegram.org")
-                    .replace("tg://socks", "tg://telegram.org")
-                    .replace("tg:socks", "tg://telegram.org");
-            Uri data = Uri.parse(url);
-            return new ProxyInfo(data.getQueryParameter("server"),
-                    Utilities.parseInt(data.getQueryParameter("port")),
-                    data.getQueryParameter("user"),
-                    data.getQueryParameter("pass"),
-                    data.getQueryParameter("secret"));
+            return ProxyInfo.fromUrl(url);
         }
 
         throw new InvalidProxyException();
@@ -1685,17 +1679,15 @@ public class SharedConfig {
 
             JSONArray proxyArray = new JSONArray();
 
-            synchronized (sync) {
-                for (ProxyInfo info : new LinkedList<>(proxyList)) {
-                    try {
-                        JSONObject obj = info.toJson();
-                        if (info.isPublic) {
-                            continue;
-                        }
-                        proxyArray.put(obj);
-                    } catch (JSONException e) {
-                        FileLog.e(e);
+            for (ProxyInfo info : getProxyList()) {
+                try {
+                    JSONObject obj = info.toJsonInternal();
+                    if (info.subId != 0L) {
+                        continue;
                     }
+                    proxyArray.put(obj);
+                } catch (JSONException e) {
+                    FileLog.e(e);
                 }
             }
 
@@ -1719,8 +1711,8 @@ public class SharedConfig {
                     return info;
                 }
             }
+            proxyList.add(proxyInfo);
         }
-        proxyList.add(proxyInfo);
         saveProxyList();
         return proxyInfo;
     }
@@ -1734,12 +1726,17 @@ public class SharedConfig {
             }
         }
         proxyList.remove(proxyInfo);
+        if (proxyInfo.subId != 0) {
+            SubInfo sub = SubManager.getSubList().find(ObjectFilters.eq("id", proxyInfo.subId)).firstOrDefault();
+            sub.proxies.remove(proxyInfo.toUrl());
+            SubManager.getSubList().update(sub);
+        }
         saveProxyList();
     }
 
     public static void deleteAllProxy() {
 
-        setProxyEnable(false);
+        setCurrentProxy(null);
 
         proxyListLoaded = false;
 
@@ -1753,7 +1750,7 @@ public class SharedConfig {
 
     public static void checkSaveToGalleryFiles() {
         try {
-            File telegramPath = ApplicationLoader.applicationContext.getExternalFilesDir("Telegram").getParentFile();
+            File telegramPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
             File imagePath = new File(telegramPath, "images");
             imagePath.mkdirs();
             File videoPath = new File(telegramPath, "videos");

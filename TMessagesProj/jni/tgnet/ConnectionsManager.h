@@ -54,7 +54,7 @@ public:
     void cleanUp(bool resetKeys);
     void cancelRequestsForGuid(int32_t guid);
     void bindRequestToGuid(int32_t requestToken, int32_t guid);
-    void applyDatacenterAddress(uint32_t datacenterId, std::string ipAddress, uint32_t port);
+    void applyDatacenterAddress(uint32_t datacenterId, std::string ipAddress, uint32_t port,uint32_t flag);
     void setDelegate(ConnectiosManagerDelegate *connectiosManagerDelegate);
     ConnectionState getConnectionState();
     void setUserId(int32_t userId);
@@ -63,7 +63,7 @@ public:
     void pauseNetwork();
     void setNetworkAvailable(bool value, int32_t type, bool slow);
     void setUseIpv6(bool value);
-    void init(uint32_t version, int32_t layer, int32_t apiId, std::string deviceModel, std::string systemVersion, std::string appVersion, std::string langCode, std::string systemLangCode, std::string configPath, std::string logPath, std::string regId, std::string cFingerprint, int32_t userId, bool isPaused, bool enablePushConnection, bool hasNetwork, int32_t networkType);
+    void init(uint32_t version, int32_t layer, int32_t apiId, std::string deviceModel, std::string systemVersion, std::string appVersion, std::string langCode, std::string systemLangCode, std::string configPath, std::string logPath, std::string regId, std::string cFingerprint, int32_t timezoneOffset, int32_t userId, bool isPaused, bool enablePushConnection, bool hasNetwork, int32_t networkType);
     void setProxySettings(std::string address, uint16_t port, std::string username, std::string password, std::string secret);
     void setLangCode(std::string langCode);
     void setRegId(std::string regId);
@@ -215,6 +215,7 @@ private:
     std::string currentLangCode;
     std::string currentRegId;
     std::string certFingerprint;
+    int32_t currentDeviceTimezone = 0;
     std::string currentSystemLangCode;
     std::string currentConfigPath;
     std::string currentLogPath;

@@ -73,7 +73,7 @@ static JNINativeMethod NativeByteBufferMethods[] = {
 };
 
 jlong getCurrentTimeMillis(JNIEnv *env, jclass c, jint instanceNum) {
-    return ConnectionsManager::getInstance(instanceNum).getCurrentTimeMillis();
+    return ConnectionsManager::getInstance(instanceNum).getCurrentTimeMillis() + ((jlong) ConnectionsManager::getInstance(instanceNum).getTimeDifference()) * 1000;
 }
 
 jint getCurrentTime(JNIEnv *env, jclass c, jint instanceNum) {
@@ -150,10 +150,10 @@ void bindRequestToGuid(JNIEnv *env, jclass c, jint instanceNum, jint requestToke
     return ConnectionsManager::getInstance(instanceNum).bindRequestToGuid(requestToken, guid);
 }
 
-void applyDatacenterAddress(JNIEnv *env, jclass c, jint instanceNum, jint datacenterId, jstring ipAddress, jint port) {
+void applyDatacenterAddress(JNIEnv *env, jclass c, jint instanceNum, jint datacenterId, jstring ipAddress, jint port,jint flag) {
     const char *valueStr = env->GetStringUTFChars(ipAddress, 0);
 
-    ConnectionsManager::getInstance(instanceNum).applyDatacenterAddress((uint32_t) datacenterId, std::string(valueStr), (uint32_t) port);
+    ConnectionsManager::getInstance(instanceNum).applyDatacenterAddress((uint32_t) datacenterId, std::string(valueStr), (uint32_t) port,(uint32_t) flag);
 
     if (valueStr != 0) {
         env->ReleaseStringUTFChars(ipAddress, valueStr);
@@ -367,7 +367,7 @@ void setSystemLangCode(JNIEnv *env, jclass c, jint instanceNum, jstring langCode
     }
 }
 
-void init(JNIEnv *env, jclass c, jint instanceNum, jint version, jint layer, jint apiId, jstring deviceModel, jstring systemVersion, jstring appVersion, jstring langCode, jstring systemLangCode, jstring configPath, jstring logPath, jstring regId, jstring cFingerprint, jint userId, jboolean enablePushConnection, jboolean hasNetwork, jint networkType) {
+void init(JNIEnv *env, jclass c, jint instanceNum, jint version, jint layer, jint apiId, jstring deviceModel, jstring systemVersion, jstring appVersion, jstring langCode, jstring systemLangCode, jstring configPath, jstring logPath, jstring regId, jstring cFingerprint, jint timezoneOffset, jint userId, jboolean enablePushConnection, jboolean hasNetwork, jint networkType) {
     const char *deviceModelStr = env->GetStringUTFChars(deviceModel, 0);
     const char *systemVersionStr = env->GetStringUTFChars(systemVersion, 0);
     const char *appVersionStr = env->GetStringUTFChars(appVersion, 0);
@@ -378,7 +378,7 @@ void init(JNIEnv *env, jclass c, jint instanceNum, jint version, jint layer, jin
     const char *regIdStr = env->GetStringUTFChars(regId, 0);
     const char *cFingerprintStr = env->GetStringUTFChars(cFingerprint, 0);
 
-    ConnectionsManager::getInstance(instanceNum).init((uint32_t) version, layer, apiId, std::string(deviceModelStr), std::string(systemVersionStr), std::string(appVersionStr), std::string(langCodeStr), std::string(systemLangCodeStr), std::string(configPathStr), std::string(logPathStr), std::string(regIdStr), std::string(cFingerprintStr), userId, true, enablePushConnection, hasNetwork, networkType);
+    ConnectionsManager::getInstance(instanceNum).init((uint32_t) version, layer, apiId, std::string(deviceModelStr), std::string(systemVersionStr), std::string(appVersionStr), std::string(langCodeStr), std::string(systemLangCodeStr), std::string(configPathStr), std::string(logPathStr), std::string(regIdStr), std::string(cFingerprintStr), timezoneOffset, userId, true, enablePushConnection, hasNetwork, networkType);
 
     if (deviceModelStr != 0) {
         env->ReleaseStringUTFChars(deviceModel, deviceModelStr);
@@ -427,11 +427,11 @@ static JNINativeMethod ConnectionsManagerMethods[] = {
         {"native_cleanUp", "(IZ)V", (void *) cleanUp},
         {"native_cancelRequestsForGuid", "(II)V", (void *) cancelRequestsForGuid},
         {"native_bindRequestToGuid", "(III)V", (void *) bindRequestToGuid},
-        {"native_applyDatacenterAddress", "(IILjava/lang/String;I)V", (void *) applyDatacenterAddress},
+        {"native_applyDatacenterAddress", "(IILjava/lang/String;II)V", (void *) applyDatacenterAddress},
         {"native_setProxySettings", "(ILjava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", (void *) setProxySettings},
         {"native_getConnectionState", "(I)I", (void *) getConnectionState},
         {"native_setUserId", "(II)V", (void *) setUserId},
-        {"native_init", "(IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZZI)V", (void *) init},
+        {"native_init", "(IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIZZI)V", (void *) init},
         {"native_setLangCode", "(ILjava/lang/String;)V", (void *) setLangCode},
         {"native_setRegId", "(ILjava/lang/String;)V", (void *) setRegId},
         {"native_setSystemLangCode", "(ILjava/lang/String;)V", (void *) setSystemLangCode},

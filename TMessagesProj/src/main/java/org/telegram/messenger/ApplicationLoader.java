@@ -26,6 +26,8 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.telephony.TelephonyManager;
 
+import androidx.multidex.MultiDex;
+
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.ForegroundDetector;
@@ -36,6 +38,7 @@ import tw.nekomimi.nekogram.ExternalGcm;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.utils.FileUtil;
 import tw.nekomimi.nekogram.utils.ProxyUtil;
+import tw.nekomimi.nekogram.utils.UIUtil;
 
 public class ApplicationLoader extends Application {
 
@@ -56,6 +59,14 @@ public class ApplicationLoader extends Application {
     public static volatile long mainInterfacePausedStageQueueTime;
 
     public static boolean hasPlayServices;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            MultiDex.install(this);
+        }
+    }
 
     @SuppressLint("SdCardPath")
     public static File getDataDirFixed() {
@@ -91,11 +102,15 @@ public class ApplicationLoader extends Application {
 
         applicationInited = true;
 
-        try {
-            LocaleController.getInstance();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        UIUtil.runOnIoDispatcher(() -> {
+
+            try {
+                LocaleController.getInstance();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        });
 
         try {
             connectivityManager = (ConnectivityManager) ApplicationLoader.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -204,7 +219,7 @@ public class ApplicationLoader extends Application {
 
         applicationHandler = new Handler(applicationContext.getMainLooper());
 
-        AndroidUtilities.runOnUIThread(ApplicationLoader::startPushService);
+        startPushService();
     }
 
 

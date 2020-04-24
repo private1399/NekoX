@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="UseOfficalId">公式アプリに偽装する</string>
-    <string name="UseOfficalIdNotice">公式アプリのIDを使用してログインします。登録やログインができない時には役に立つかもしれません。\n\n注意:リリースバージョンを使用しているとFCMは動作しません。</string>
     <string name="ChangeTranslateProvider">プロバイダを変更</string>
     <string name="NekoXUpdatesChannel">NekoX アップデートチャンネル</string>
     <string name="UseDefaultTheme">デフォルトテーマを使用 *</string>
@@ -14,9 +12,7 @@
     <string name="DoNotRemindAgain">今後表示しない</string>
     <string name="RemoveTitleEmoji">タイトルの絵文字を削除</string>
     <string name="NekoXProxy">NekoXパブリックプロキシ</string>
-    <string name="PublicPrefix">[ パブリック ]</string>
-    <string name="NekoXProxyInfo">NekoX パブリックビルトインプロキシの読み込みには数十秒かかる場合があります :)</string>
-    <string name="HidePublicProxyList">パブリックプロキシリストを非表示</string>
+    <string name="PublicPrefix">パブリック</string>
     <string name="DisableChatAction">入力ステータスを送信しない</string>
     <string name="SaveCacheToSdcard">キャッシュをSDカードに保存</string>
     <string name="FilterNameUsers">ユーザー</string>
@@ -85,7 +81,6 @@
     <string name="ExportProxies">サーバをファイルにエクスポート</string>
     <string name="ImportProxies">サーバをファイルからインポート</string>
     <string name="ImportProxyList">プロキシサーバをインポート</string>
-    <string name="ImportProxyListConfirm">**プロキシサーバーをインポート**しますか？</string>
     <string name="InvalidProxyFile">無効なプロキシリストファイル: </string>
     <string name="ImportedProxies">インポートされたプロキシサーバー: </string>
     <string name="ErrorsInImport">インポートエラー: </string>
@@ -103,9 +98,6 @@
     <string name="EnableDeveloperMode">開発者モードを有効にする</string>
     <string name="DisableDeveloperMode">開発者モードを無効にする</string>
     <string name="DeveloperSettings">開発者設定</string>
-    <string name="DisableScreenshotDetection">スクリーンショットの検出を無効にする</string>
     <string name="LoginSettings">ログイン設定</string>
-    <string name="ShowTestBackend">テストバックエンドを表示</string>
-    <string name="ShowBotLogin">ボットログインを表示</string>
     <string name="NekoXFaq">NekoX FAQ</string>
 </resources>

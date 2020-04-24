@@ -13,18 +13,36 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
+import kotlin.collections.ArraysKt;
+
 public class BuildVars {
 
-    public static boolean DEBUG_VERSION = false;
+    public static boolean DEBUG_VERSION = true;
     public static boolean DEBUG_PRIVATE_VERSION = false;
     public static boolean LOGS_ENABLED = true;
     public static boolean USE_CLOUD_STRINGS = true;
 
+    public static boolean SAVE_LOG;
+
+
     public static int BUILD_VERSION;
     public static String BUILD_VERSION_STRING;
 
-    public static int OFFICAL_APP_ID = 21724;
-    public static String OFFICAL_APP_HASH = "3e0cb5efcd52300aec5994fdfc5bdc16";
+    public static int OFFICAL_APP_ID = 4;
+    public static String OFFICAL_APP_HASH = "014b35b6184100b085b0d0572f9b5103";
+
+    public static int TGX_APP_ID = 21724;
+    public static String TGX_APP_HASH = "3e0cb5efcd52300aec5994fdfc5bdc16";
+
+    private static int[] INTERNAL_APP_IDS = {
+            0,BuildConfig.APP_ID, OFFICAL_APP_ID, TGX_APP_ID
+    };
+
+    public static boolean isCustom(int appId) {
+
+        return ArraysKt.contains(INTERNAL_APP_IDS, appId);
+
+    }
 
     static {
 
@@ -42,8 +60,7 @@ public class BuildVars {
     static {
         if (ApplicationLoader.applicationContext != null) {
             SharedPreferences sharedPreferences = ApplicationLoader.applicationContext.getSharedPreferences("systemConfig", Context.MODE_PRIVATE);
-            DEBUG_VERSION = sharedPreferences.getBoolean("logsEnabled", DEBUG_VERSION);
-            DEBUG_PRIVATE_VERSION = DEBUG_VERSION;
+            SAVE_LOG = sharedPreferences.getBoolean("logsEnabled", SAVE_LOG);
         }
     }
 }

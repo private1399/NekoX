@@ -11,8 +11,6 @@ import android.util.Base64;
 
 import com.v2ray.ang.util.Utils;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -30,21 +28,18 @@ import org.telegram.messenger.StatsController;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -55,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.utils.DnsFactory;
+import tw.nekomimi.nekogram.utils.UIUtil;
 
 //import org.telegram.messenger.BuildConfig;
 
@@ -203,11 +199,10 @@ public class ConnectionsManager extends BaseController {
             pushString = SharedConfig.pushStringStatus;
         }
         String fingerprint = AndroidUtilities.getCertificateSHA256Fingerprint();
-        init(BuildVars.BUILD_VERSION, TLRPC.LAYER, BuildConfig.APP_ID, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, FileLog.getNetworkLogPath(), pushString, fingerprint, getUserConfig().getClientUserId(), enablePushConnection);
-        if (currentAccount == 0 && BuildVars.DEBUG_PRIVATE_VERSION) {
-            DnsTxtLoadTask task = new DnsTxtLoadTask(currentAccount);
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, null, null, null);
-        }
+
+        int timezoneOffset = (TimeZone.getDefault().getRawOffset() + TimeZone.getDefault().getDSTSavings()) / 1000;
+
+        init(BuildVars.BUILD_VERSION, TLRPC.LAYER, BuildConfig.APP_ID, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, FileLog.getNetworkLogPath(), pushString, fingerprint, timezoneOffset, getUserConfig().getClientUserId(), enablePushConnection);
     }
 
     public boolean isPushConnectionEnabled() {
@@ -249,9 +244,9 @@ public class ConnectionsManager extends BaseController {
 
     public int sendRequest(final TLObject object, final RequestDelegate onComplete, final QuickAckDelegate onQuickAck, final WriteToSocketDelegate onWriteToSocket, final int flags, final int datacenterId, final int connetionType, final boolean immediate) {
         final int requestToken = lastRequestToken.getAndIncrement();
-        Utilities.stageQueue.postRunnable(() -> {
+        UIUtil.runOnIoDispatcher(() -> {
             if (BuildVars.LOGS_ENABLED) {
-                FileLog.d("send request " + object + " with token = " + requestToken);
+                FileLog.d("send request " + object.getClass().getSimpleName() + " with token = " + requestToken);
             }
             try {
                 NativeByteBuffer buffer = new NativeByteBuffer(object.getObjectSize());
@@ -271,14 +266,14 @@ public class ConnectionsManager extends BaseController {
                             error.code = errorCode;
                             error.text = errorText;
                             if (BuildVars.LOGS_ENABLED) {
-                                FileLog.e(object + " got error " + error.code + " " + error.text);
+                                FileLog.e(object.getClass().getSimpleName() + " got error " + error.code + " " + error.text + " with token = " + requestToken);
                             }
                         }
                         if (resp != null) {
                             resp.networkType = networkType;
                         }
                         if (BuildVars.LOGS_ENABLED) {
-                            FileLog.d("java received " + resp + " error = " + error);
+                            FileLog.d("java received " + resp + " error = " + (error == null ? "null" : (error.code + ": " + error.text)));
                         }
                         final TLObject finalResponse = resp;
                         final TLRPC.TL_error finalError = error;
@@ -315,8 +310,8 @@ public class ConnectionsManager extends BaseController {
         native_bindRequestToGuid(currentAccount, requestToken, guid);
     }
 
-    public void applyDatacenterAddress(int datacenterId, String ipAddress, int port) {
-        native_applyDatacenterAddress(currentAccount, datacenterId, ipAddress, port);
+    public void applyDatacenterAddress(int datacenterId, String ipAddress, int port, int flag) {
+        native_applyDatacenterAddress(currentAccount, datacenterId, ipAddress, port, flag);
     }
 
     public int getConnectionState() {
@@ -331,7 +326,16 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void checkConnection() {
-        native_setUseIpv6(currentAccount, useIpv6Address());
+        boolean useIpv6;
+        int networkType = MessagesController.getMainSettings(currentAccount).getInt("network", 0);
+        if (networkType == 4) {
+            useIpv6 = false;
+        } else if (networkType == 6) {
+            useIpv6 = true;
+        } else {
+            useIpv6 = useIpv6Address();
+        }
+        native_setUseIpv6(currentAccount, useIpv6);
         native_setNetworkAvailable(currentAccount, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(), ApplicationLoader.isConnectionSlow());
     }
 
@@ -339,7 +343,7 @@ public class ConnectionsManager extends BaseController {
         native_setPushConnectionEnabled(currentAccount, value);
     }
 
-    public void init(int version, int layer, int apiId, String deviceModel, String systemVersion, String appVersion, String langCode, String systemLangCode, String configPath, String logPath, String regId, String cFingerprint, int userId, boolean enablePushConnection) {
+    public void init(int version, int layer, int apiId, String deviceModel, String systemVersion, String appVersion, String langCode, String systemLangCode, String configPath, String logPath, String regId, String cFingerprint, int timezoneOffset, int userId, boolean enablePushConnection) {
 
         if (SharedConfig.proxyEnabled && SharedConfig.currentProxy != null) {
 
@@ -347,8 +351,7 @@ public class ConnectionsManager extends BaseController {
 
         }
 
-        native_init(currentAccount, version, layer, apiId, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, logPath, regId, cFingerprint, userId, enablePushConnection, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType());
-
+        native_init(currentAccount, version, layer, apiId, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, logPath, regId, cFingerprint, timezoneOffset, userId, enablePushConnection, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType());
         checkConnection();
 
     }
@@ -379,7 +382,7 @@ public class ConnectionsManager extends BaseController {
 
     public void switchBackend() {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        preferences.edit().remove("language_showed2").commit();
+        preferences.edit().remove("language_showed2").apply();
         native_switchBackend(currentAccount);
     }
 
@@ -532,6 +535,11 @@ public class ConnectionsManager extends BaseController {
                 }
                 return;
             }
+
+            if (MessagesController.getMainSettings(currentAccount).getBoolean("custom_dc", false)) {
+                return;
+            }
+
             lastDnsRequestTime = System.currentTimeMillis();
 
             if (BuildVars.LOGS_ENABLED) {
@@ -653,13 +661,13 @@ public class ConnectionsManager extends BaseController {
 
     public static native void native_bindRequestToGuid(int currentAccount, int requestToken, int guid);
 
-    public static native void native_applyDatacenterAddress(int currentAccount, int datacenterId, String ipAddress, int port);
+    public static native void native_applyDatacenterAddress(int currentAccount, int datacenterId, String ipAddress, int port, int flag);
 
     public static native int native_getConnectionState(int currentAccount);
 
     public static native void native_setUserId(int currentAccount, int id);
 
-    public static native void native_init(int currentAccount, int version, int layer, int apiId, String deviceModel, String systemVersion, String appVersion, String langCode, String systemLangCode, String configPath, String logPath, String regId, String cFingerprint, int userId, boolean enablePushConnection, boolean hasNetwork, int networkType);
+    public static native void native_init(int currentAccount, int version, int layer, int apiId, String deviceModel, String systemVersion, String appVersion, String langCode, String systemLangCode, String configPath, String logPath, String regId, String cFingerprint, int timezoneOffset, int userId, boolean enablePushConnection, boolean hasNetwork, int networkType);
 
     public static native void native_setProxySettings(int currentAccount, String address, int port, String username, String password, String secret);
 
@@ -699,7 +707,7 @@ public class ConnectionsManager extends BaseController {
 
     @SuppressLint("NewApi")
     public static boolean useIpv6Address() {
-        if (Build.VERSION.SDK_INT < 19 || !(SharedConfig.proxyEnabled && SharedConfig.currentProxy != null && !SharedConfig.currentProxy.secret.isEmpty())) {
+        if (Build.VERSION.SDK_INT < 19) {
             return false;
         }
         if (BuildVars.LOGS_ENABLED) {
@@ -792,7 +800,7 @@ public class ConnectionsManager extends BaseController {
 
         protected ResolvedDomain doInBackground(Void... voids) {
 
-            InetAddress[] result = DnsFactory.Companion.lookUp(currentHostName);
+            InetAddress[] result = DnsFactory.Companion.lookup(currentHostName).toArray(new InetAddress[0]);
 
             return new ResolvedDomain(result, 10 * 60 * 1000L);
 

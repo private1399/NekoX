@@ -95,6 +95,10 @@ import java.util.StringTokenizer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.ArrayUtil;
+import kotlin.collections.CollectionsKt;
+
 public class DocumentSelectActivity extends BaseFragment {
 
     public interface DocumentSelectActivityDelegate {
@@ -639,7 +643,17 @@ public class DocumentSelectActivity extends BaseFragment {
             writeButtonDrawable = combinedDrawable;
         }
         writeButton.setBackgroundDrawable(writeButtonDrawable);
-        writeButton.setImageResource(R.drawable.attach_send);
+
+        if (allowPhoto) {
+
+            writeButton.setImageResource(R.drawable.baseline_send_24);
+
+        } else {
+
+            writeButton.setImageResource(R.drawable.baseline_check_24);
+
+        }
+
         writeButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogFloatingIcon), PorterDuff.Mode.SRC_IN));
         writeButton.setScaleType(ImageView.ScaleType.CENTER);
         if (Build.VERSION.SDK_INT >= 21) {
@@ -1327,7 +1341,7 @@ public class DocumentSelectActivity extends BaseFragment {
         ListItem fs = new ListItem();
 
         try {
-            File telegramPath = ApplicationLoader.applicationContext.getExternalFilesDir("Telegram").getParentFile();
+            File telegramPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
             if (telegramPath.exists()) {
                 fs = new ListItem();
                 fs.title = "Telegram";
@@ -1610,9 +1624,8 @@ public class DocumentSelectActivity extends BaseFragment {
     }
 
     @Override
-    public ThemeDescription[] getThemeDescriptions() {
-        return new ThemeDescription[]{
-                new ThemeDescription(sizeNotifierFrameLayout, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogBackground),
+    public ArrayList<ThemeDescription> getThemeDescriptions() {
+        return CollectionUtil.toList(new ThemeDescription(sizeNotifierFrameLayout, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogBackground),
 
                 new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogBackground),
                 new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_dialogTextBlack),
@@ -1644,7 +1657,6 @@ public class DocumentSelectActivity extends BaseFragment {
 
                 new ThemeDescription(writeButton, ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_dialogFloatingIcon),
                 new ThemeDescription(writeButton, ThemeDescription.FLAG_BACKGROUNDFILTER, null, null, null, null, Theme.key_dialogFloatingButton),
-                new ThemeDescription(writeButton, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Build.VERSION.SDK_INT >= 21 ? Theme.key_dialogFloatingButtonPressed : Theme.key_dialogFloatingButton)
-        };
+                new ThemeDescription(writeButton, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Build.VERSION.SDK_INT >= 21 ? Theme.key_dialogFloatingButtonPressed : Theme.key_dialogFloatingButton));
     }
 }

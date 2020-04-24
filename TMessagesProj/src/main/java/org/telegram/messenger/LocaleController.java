@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.utils.FileUtil;
 
 public class LocaleController {
@@ -55,7 +54,7 @@ public class LocaleController {
     static final int QUANTITY_MANY = 0x0010;
 
     public static boolean isRTL = false;
-    public static int nameDisplayOrder = 1;
+
     public static boolean is24HourFormat = false;
     public FastDateFormat formatterDay;
     public FastDateFormat formatterWeek;
@@ -344,7 +343,7 @@ public class LocaleController {
         localeInfo.name = "简体中文 ( NekoX )";
         localeInfo.nameEnglish = "Simplified Chinese ( NekoX )";
         localeInfo.shortName = "nekox_zh_cn";
-        localeInfo.baseLangCode = "zh_hans_raw";
+        localeInfo.baseLangCode = "zh_hans";
         localeInfo.isRtl = false;
         localeInfo.pathToFile = "unofficial";
         localeInfo.pluralLangCode = "zh_cn";
@@ -358,7 +357,7 @@ public class LocaleController {
         localeInfo.name = "瓜体中文 \uD83D\uDE36";
         localeInfo.nameEnglish = "Duangified Chinese (Simplified)";
         localeInfo.shortName = "duang_zh_hans";
-        localeInfo.baseLangCode = "zh_hans_raw";
+        localeInfo.baseLangCode = "zh_hans";
         localeInfo.isRtl = false;
         localeInfo.pathToFile = "unofficial";
         localeInfo.pluralLangCode = "zh_duang";
@@ -736,7 +735,7 @@ public class LocaleController {
             }
         }
         editor.putString("unofficial", stringBuilder.toString());
-        editor.commit();
+        editor.apply();
     }
 
     public boolean deleteLanguage(LocaleInfo localeInfo, int currentAccount) {
@@ -944,7 +943,7 @@ public class LocaleController {
                 SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                 SharedPreferences.Editor editor = preferences.edit();
                 editor.putString("language", localeInfo.getKey());
-                editor.commit();
+                editor.apply();
             }
             if (pathToFile == null) {
                 localeValues.clear();
@@ -1567,7 +1566,6 @@ public class LocaleController {
         isRTL = lang.length() == 2 && (lang.equals("ar") || lang.equals("fa") || lang.equals("he") || lang.equals("iw")) ||
                 lang.startsWith("ar_") || lang.startsWith("fa_") || lang.startsWith("he_") || lang.startsWith("iw_")
                 || currentLocaleInfo != null && currentLocaleInfo.isRtl;
-        nameDisplayOrder = NekoConfig.nameOrder;
 
         formatterDayMonth = createFormatter(locale, getStringInternal("formatterMonth", R.string.formatterMonth), "dd MMM");
         formatterYear = createFormatter(locale, getStringInternal("formatterYear", R.string.formatterYear), "dd.MM.yy");
@@ -1858,7 +1856,7 @@ public class LocaleController {
                             SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                             SharedPreferences.Editor editor = preferences.edit();
                             editor.putString("language", localeInfo.getKey());
-                            editor.commit();
+                            editor.apply();
                         }
                         if (newLocale != null) {
                             localeValues = valuesToSet;
@@ -1979,7 +1977,7 @@ public class LocaleController {
                     req.lang_pack = "";
                     ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
                         if (response != null) {
-                            AndroidUtilities.runOnUIThread(() -> saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount));
+                            saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount);
                         }
                     }, ConnectionsManager.RequestFlagWithoutLogin);
                 }
@@ -1988,7 +1986,7 @@ public class LocaleController {
                 req.lang_code = localeInfo.getBaseLangCode();
                 ConnectionsManager.getInstance(currentAccount).sendRequest(req, (TLObject response, TLRPC.TL_error error) -> {
                     if (response != null) {
-                        AndroidUtilities.runOnUIThread(() -> saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount));
+                        saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount);
                     }
                 }, ConnectionsManager.RequestFlagWithoutLogin);
             }
@@ -2001,7 +1999,7 @@ public class LocaleController {
                 req.lang_pack = "";
                 ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
                     if (response != null) {
-                        AndroidUtilities.runOnUIThread(() -> saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount));
+                        saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount);
                     }
                 }, ConnectionsManager.RequestFlagWithoutLogin);
             } else {
@@ -2012,7 +2010,7 @@ public class LocaleController {
                 req.lang_code = localeInfo.getLangCode();
                 ConnectionsManager.getInstance(currentAccount).sendRequest(req, (TLObject response, TLRPC.TL_error error) -> {
                     if (response != null) {
-                        AndroidUtilities.runOnUIThread(() -> saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount));
+                        saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount);
                     }
                 }, ConnectionsManager.RequestFlagWithoutLogin);
             }

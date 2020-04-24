@@ -7,7 +7,13 @@ import java.io.File
 
 fun mkDatabase(name: String): Nitrite {
 
-    val file = File("${ApplicationLoader.getDataDirFixed()}/files/$name.db")
+    File("${ApplicationLoader.getDataDirFixed()}/database").apply {
+
+        if (exists()) deleteRecursively()
+
+    }
+
+    val file = File("${ApplicationLoader.getDataDirFixed()}/databases/$name.db")
 
     FileUtil.initDir(file.parentFile!!)
 
@@ -15,7 +21,7 @@ fun mkDatabase(name: String): Nitrite {
 
         return Nitrite.builder().compressed()
                 .filePath(file.path)
-                .openOrCreate(name, "nya")!!
+                .openOrCreate()!!
 
     }
 
@@ -23,7 +29,7 @@ fun mkDatabase(name: String): Nitrite {
 
     return Nitrite.builder().compressed()
             .filePath(file.path)
-            .openOrCreate(name, "nya")!!
+            .openOrCreate()!!
 
 }
 
@@ -37,7 +43,7 @@ fun mkCacheDatabase(name: String): Nitrite {
 
         return Nitrite.builder().compressed()
                 .filePath(file.path)
-                .openOrCreate(name, "nya")!!
+                .openOrCreate()!!
 
     }
 
@@ -45,7 +51,7 @@ fun mkCacheDatabase(name: String): Nitrite {
 
     return Nitrite.builder().compressed()
             .filePath(file.path)
-            .openOrCreate(name, "nya")!!
+            .openOrCreate()!!
 
 }
 

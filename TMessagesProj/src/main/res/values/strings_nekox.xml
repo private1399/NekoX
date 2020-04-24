@@ -3,13 +3,19 @@
 
     <string name="NekoX" translatable="false">Nekogram X</string>
 
-    <string name="UseOfficalId">Disguised as official app</string>
-    <string name="UseOfficalIdNotice">Log in using the official App Id, if you are unable to register or log in, this may help.\n\nNote: fcm will not work if you are using the release version.</string>
+    <string name="CustomApi">Custom API</string>
+    <string name="UseCustomApiNotice">Log in using the custom api, if you are unable to register or log in, this may help.\n\nNote: fcm will not work if you are using the release version.</string>
+    <string name="CustomApiNo">Don\'t use custom API</string>
+    <string name="CustomApiOffical">Telegram Android</string>
+    <string name="CustomApiTGX">Telegram Android X</string>
+    <string name="CustomApiInput">Manual input</string>
+
+    <string name="AllowFlashCall">Allow flash call</string>
 
     <string name="ChangeTranslateProvider">Change Provider</string>
 
     <string name="NekoXUpdatesChannel">NekoX Updates Channel</string>
-    <string name="ShowIdAndDc">Show id / dc in profile</string>
+    <string name="ShowIdAndDc">Show ID / DC in profile</string>
     <string name="UseDefaultTheme">Use default theme *</string>
     <string name="NightMode">Night Mode</string>
 
@@ -17,6 +23,7 @@
     <string name="PrivacyNoticePhoneVisible">It is detected that your mobile phone number is visible to anyone, which may cause government-controlled hackers to find your true identity, please turn it off!</string>
     <string name="PrivacyNoticeAddByPhone">It is detected that you are not turned off the \"Allow find me through phone number\" Setting, which may cause a government-controlled hacker to find your true identity, please turn it off!</string>
     <string name="PrivacyNoticeP2p">It is detected that you have not turned off the \"Allow P2p calls\" Setting, which may cause government-controlled hackers to find your true identity, please turn it off!</string>
+    <string name="PrivacyNotice2fa">It is detected that you have not set a password, which may cause government-controlled hackers to find your true identity, please set one!</string>
 
     <string name="ApplySuggestion">OK, Apply it</string>
     <string name="DoNotRemindAgain">Don\'t remind again</string>
@@ -24,14 +31,13 @@
     <string name="RemoveTitleEmoji">Remove emoji in title</string>
 
     <string name="NekoXProxy">NekoX Public Proxy</string>
-    <string name="PublicPrefix">[ Public ]</string>
-    <string name="NekoXProxyInfo">It may take tens of seconds to load the NekoX Public built-in proxy :)</string>
-
-    <string name="HidePublicProxyList">Hide public proxy list</string>
+    <string name="PublicPrefix">Public</string>
 
     <string name="DisableChatAction">Don\'t send my input status</string>
     <string name="FakeScreenshot">Pretend screenshot</string>
     <string name="SaveCacheToSdcard">Save cache to sdcard*</string>
+
+    <string name="Import">Import</string>
 
     <string name="FilterNameUsers">Users</string>
     <string name="FilterNameUsersDescription">Only messages from private chats</string>
@@ -123,7 +129,19 @@
     <string name="ExportProxies">Export servers to file</string>
     <string name="ImportProxies">Import servers from file</string>
     <string name="ImportProxyList">Import proxy servers</string>
-    <string name="ImportProxyListConfirm">Are you sure you want to **import proxy servers**?</string>
+
+    <string name="ProxySubscription">Proxy Subscription</string>
+    <string name="ProxySubDetails">Subscription Details</string>
+    <string name="SubscriptionUrls">Urls</string>
+    <string name="SubscriptionUpdating">Updating Subscription</string>
+    <string name="SubscriptionDelete">Delete Subscription</string>
+
+    <string name="ExportStickers">Export Stickers</string>
+    <string name="ImportStickers">Import stickers from file</string>
+    <string name="ImportStickersList">Import stickers</string>
+
+    <string name="StickerSets">Sticker Sets</string>
+    <string name="InvalidStickersFile">Invalid stickers file: </string>
 
     <string name="InvalidProxyFile">Invalid proxy list file: </string>
     <string name="ImportedProxies">Imported proxy servers: </string>
@@ -147,13 +165,7 @@
     <string name="EnableDeveloperMode">Enable Developer Mode</string>
     <string name="DisableDeveloperMode">Disable Developer Mode</string>
     <string name="DeveloperSettings">Developer Settings</string>
-
-    <string name="DisableFlagSecure">Disable Flag Secure</string>
-    <string name="DisableScreenshotDetection">Disable Screenshot Detection</string>
-
     <string name="LoginSettings">Login Settings</string>
-    <string name="ShowTestBackend">Show Test Backend</string>
-    <string name="ShowBotLogin">Show Bot Login</string>
 
     <string name="NekoXFaq">NekoX FAQ</string>
 

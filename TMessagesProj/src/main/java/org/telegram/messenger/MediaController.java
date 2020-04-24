@@ -364,7 +364,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
     private static final int AUDIO_NO_FOCUS_CAN_DUCK = 1;
     private static final int AUDIO_FOCUSED = 2;
 
-    private class VideoConvertMessage {
+    private static class VideoConvertMessage {
         public MessageObject messageObject;
         public VideoEditedInfo videoEditedInfo;
         public int currentAccount;
@@ -576,7 +576,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         }
     }
 
-    private class GalleryObserverInternal extends ContentObserver {
+    private static class GalleryObserverInternal extends ContentObserver {
         public GalleryObserverInternal() {
             super(null);
         }
@@ -602,8 +602,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         }
     }
 
-
-    private class GalleryObserverExternal extends ContentObserver {
+    private static class GalleryObserverExternal extends ContentObserver {
         public GalleryObserverExternal() {
             super(null);
         }
@@ -964,7 +963,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                                         lastSaveTime = SystemClock.elapsedRealtime();
                                         Utilities.globalQueue.postRunnable(() -> {
                                             SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("media_saved_pos", Activity.MODE_PRIVATE).edit();
-                                            editor.putFloat(shouldSavePositionForCurrentAudio, value).commit();
+                                            editor.putFloat(shouldSavePositionForCurrentAudio, value).apply();
                                         });
                                     }
                                     NotificationCenter.getInstance(currentPlayingMessageObject.currentAccount).postNotificationName(NotificationCenter.messagePlayingProgressDidChanged, currentPlayingMessageObject.getId(), value);
@@ -2139,7 +2138,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         } else if (videoPlayer != null) {
             videoPlayer.setPlaybackSpeed(speed);
         }
-        MessagesController.getGlobalMainSettings().edit().putFloat(music ? "musicPlaybackSpeed" : "playbackSpeed", speed).commit();
+        MessagesController.getGlobalMainSettings().edit().putFloat(music ? "musicPlaybackSpeed" : "playbackSpeed", speed).apply();
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.messagePlayingSpeedChanged);
     }
 
@@ -3532,9 +3531,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             allPhotosAlbumEntry = allPhotosAlbumFinal;
             allMediaAlbumEntry = allMediaAlbumFinal;
             allVideosAlbumEntry = allVideosAlbumFinal;
-            for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
-                NotificationCenter.getInstance(a).postNotificationName(NotificationCenter.albumsDidLoad, guid, mediaAlbumsSorted, photoAlbumsSorted, cameraAlbumIdFinal);
-            }
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.albumsDidLoad, guid, mediaAlbumsSorted, photoAlbumsSorted, cameraAlbumIdFinal);
         }, delay);
     }
 
@@ -3859,7 +3856,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             FileLog.d("time=" + (System.currentTimeMillis() - time) + " canceled=" + canceled);
         }
 
-        preferences.edit().putBoolean("isPreviousOk", true).commit();
+        preferences.edit().putBoolean("isPreviousOk", true).apply();
         didWriteData(convertMessage, cacheFile, true, cacheFile.length(), error || canceled, 1f);
 
         return true;

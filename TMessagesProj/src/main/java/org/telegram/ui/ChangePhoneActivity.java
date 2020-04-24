@@ -725,7 +725,7 @@ public class ChangePhoneActivity extends BaseFragment {
                     if (!permissionsItems.isEmpty()) {
                         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                         if (preferences.getBoolean("firstlogin", true) || getParentActivity().shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE)) {
-                            preferences.edit().putBoolean("firstlogin", false).commit();
+                            preferences.edit().putBoolean("firstlogin", false).apply();
                             AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
                             builder.setTitle(LocaleController.getString("NekoX", R.string.NekoX));
                             builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
@@ -1546,7 +1546,7 @@ public class ChangePhoneActivity extends BaseFragment {
     }
 
     @Override
-    public ThemeDescription[] getThemeDescriptions() {
+    public ArrayList<ThemeDescription> getThemeDescriptions() {
         PhoneView phoneView = (PhoneView) views[0];
         LoginActivitySmsView smsView1 = (LoginActivitySmsView) views[1];
         LoginActivitySmsView smsView2 = (LoginActivitySmsView) views[2];
@@ -1636,6 +1636,6 @@ public class ChangePhoneActivity extends BaseFragment {
         arrayList.add(new ThemeDescription(smsView4.blackImageView, ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
         arrayList.add(new ThemeDescription(smsView4.blueImageView, ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_chats_actionBackground));
 
-        return arrayList.toArray(new ThemeDescription[0]);
+        return arrayList;
     }
 }

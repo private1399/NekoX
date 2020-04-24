@@ -2,6 +2,7 @@ package tw.nekomimi.nekogram.utils
 
 import android.content.Context
 import android.content.DialogInterface
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import org.telegram.messenger.AndroidUtilities
@@ -10,6 +11,10 @@ import org.telegram.messenger.LocaleController
 import org.telegram.messenger.R
 import org.telegram.ui.ActionBar.AlertDialog
 import org.telegram.ui.ActionBar.Theme
+import org.telegram.ui.Cells.TextCell
+import org.telegram.ui.Components.EditTextBoldCursor
+import org.telegram.ui.Components.NumberPicker
+import tw.nekomimi.nekogram.BottomBuilder
 import tw.nekomimi.nekogram.NekoConfig
 import java.util.concurrent.atomic.AtomicReference
 
@@ -26,21 +31,57 @@ object AlertUtil {
     })
 
     @JvmStatic
-    fun showSimpleAlert(ctx: Context?, text: String) = UIUtil.runOnUIThread(Runnable {
+    @JvmOverloads
+    fun showSimpleAlert(ctx: Context?, text: String, listener: ((AlertDialog.Builder) -> Unit)? = null) = UIUtil.runOnUIThread(Runnable {
 
         val builder = AlertDialog.Builder(ctx ?: ApplicationLoader.applicationContext)
 
         builder.setTitle(LocaleController.getString("NekoX", R.string.NekoX))
         builder.setMessage(text)
 
-        builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
+        builder.setPositiveButton(LocaleController.getString("OK", R.string.OK)) { _, _ ->
+
+            listener?.invoke(builder)
+
+            builder.dismissRunnable.run()
+
+        }
 
         builder.show()
 
     })
 
+    @JvmOverloads
     @JvmStatic
-    fun showConfirm(ctx: Context, title: String, text: String, button: String, red: Boolean = false, listener: DialogInterface.OnClickListener) = UIUtil.runOnUIThread(Runnable {
+    fun showProgress(ctx: Context,text: String = LocaleController.getString("Loading",R.string.Loading)): AlertDialog {
+
+        return AlertDialog.Builder(ctx,1).apply {
+
+            setMessage(text)
+
+        }.create()
+
+    }
+
+    fun showInput(ctx: Context, title: String, hint: String, onInput: (AlertDialog.Builder, String) -> String) = UIUtil.runOnUIThread( Runnable {
+
+        val builder = AlertDialog.Builder(ctx)
+
+        builder.setTitle(title)
+
+        builder.setView(EditTextBoldCursor(ctx).apply {
+
+            setHintText(hint)
+
+        })
+
+    })
+
+    @JvmStatic
+    @JvmOverloads
+    fun showConfirm(ctx: Context, title: String, text: String? = null,icon: Int, button: String, red: Boolean, listener: Runnable) = UIUtil.runOnUIThread(Runnable {
+
+        /*
 
         val builder = AlertDialog.Builder(ctx)
 
@@ -57,6 +98,32 @@ object AlertUtil {
             (alertDialog.getButton(DialogInterface.BUTTON_POSITIVE) as TextView?)?.setTextColor(Theme.getColor(Theme.key_dialogTextRed2))
 
         }
+
+         */
+
+        val builder = BottomBuilder(ctx)
+
+        if (text != null) {
+
+            builder.addTitle(title, true, text)
+
+        } else {
+
+            builder.addTitle(title,false)
+
+        }
+
+        builder.addItem(button, icon,red) {
+
+            builder.dismiss()
+
+            listener.run()
+
+        }
+
+        builder.addCancelItem()
+
+        builder.show()
 
     })
 
@@ -133,5 +200,43 @@ object AlertUtil {
         })
 
     })
+
+    fun showTimePicker(ctx: Context, title: String, callback: (Long) -> Unit) {
+
+        ctx.setTheme(R.style.Theme_TMessages)
+
+        val builder = AlertDialog.Builder(ctx)
+
+        builder.setTitle(title)
+
+        builder.setView(LinearLayout(ctx).apply {
+
+            orientation = LinearLayout.HORIZONTAL
+
+            addView(NumberPicker(ctx).apply {
+
+                minValue = 0
+                maxValue = 60
+
+            }, LinearLayout.LayoutParams(-2, -2).apply {
+
+                weight = 1F
+
+            })
+
+            addView(NumberPicker(ctx).apply {
+
+                minValue = 0
+                maxValue = 60
+
+            }, LinearLayout.LayoutParams(-2, -2).apply {
+
+                weight = 1F
+
+            })
+
+        })
+
+    }
 
 }

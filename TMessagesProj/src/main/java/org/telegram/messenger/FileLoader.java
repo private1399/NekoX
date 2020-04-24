@@ -261,7 +261,7 @@ public class FileLoader extends BaseController {
                     uploadSizes.remove(location);
                 }
             }
-            if (delegate != null) {
+            if (delegate != null && estimatedSize != 0) {
                 delegate.fileUploadProgressChanged(location, 0, estimatedSize, encrypted);
             }
             FileUploadOperation operation = new FileUploadOperation(currentAccount, location, encrypted, esimated, type);
@@ -1135,7 +1135,7 @@ public class FileLoader extends BaseController {
     public static String getAttachFileName(TLObject attach, String ext) {
         if (attach instanceof TLRPC.Document) {
             TLRPC.Document document = (TLRPC.Document) attach;
-            if (document.mime_type.startsWith("application/x") ||
+            if (document.mime_type != null && document.mime_type.startsWith("application/x") ||
                     document.mime_type.startsWith("audio/") ||
                     document.mime_type.startsWith("video/") ||
                     document.mime_type.startsWith("image/")) {

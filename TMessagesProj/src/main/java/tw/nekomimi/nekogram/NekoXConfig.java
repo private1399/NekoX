@@ -1,15 +1,9 @@
 package tw.nekomimi.nekogram;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 
-import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.R;
-import org.telegram.tgnet.TLRPC;
-
-import java.util.LinkedList;
+import org.telegram.messenger.BuildConfig;
+import org.telegram.messenger.BuildVars;
 
 import tw.nekomimi.nekogram.database.NitritesKt;
 
@@ -17,30 +11,13 @@ public class NekoXConfig {
 
     public static String FAQ_URL = "https://telegra.ph/NekoX-FAQ-03-31";
 
+    private static SharedPreferences preferences = NitritesKt.openMainSharedPreference("nekox_config");
+
     public static boolean developerModeEntrance;
-    public static boolean developerMode;
+    public static boolean developerMode = preferences.getBoolean("developer_mode", false);
 
-    public static boolean disableFlagSecure;
-    public static boolean disableScreenshotDetection;
-
-    public static boolean showTestBackend;
-    public static boolean showBotLogin;
-
-    private static SharedPreferences preferences;
-
-    static {
-
-        preferences = NitritesKt.openMainSharedPreference("nekox_config");
-
-        developerMode = preferences.getBoolean("developer_mode", false);
-
-        disableFlagSecure = preferences.getBoolean("disable_flag_secure", false);
-        disableScreenshotDetection = preferences.getBoolean("disable_screenshot_detection", false);
-
-        showTestBackend = preferences.getBoolean("show_test_backend", false);
-        showBotLogin = preferences.getBoolean("show_bot_login", false);
-
-    }
+    public static boolean disableFlagSecure = preferences.getBoolean("disable_flag_secure", false);
+    public static boolean disableScreenshotDetection = preferences.getBoolean("disable_screenshot_detection", false);
 
     public static void toggleDeveloperMode() {
 
@@ -60,17 +37,66 @@ public class NekoXConfig {
 
     }
 
-    public static void toggleShowTestBackend() {
+    public static int customApi = preferences.getInt("custom_api", 0);
+    public static int customAppId = preferences.getInt("custom_app_id", 0);
+    public static String customAppHash = preferences.getString("custom_app_hash", "");
 
-        preferences.edit().putBoolean("show_test_backend", showTestBackend = !showTestBackend).apply();
+    public static int currentAppId() {
+
+        switch (customApi) {
+
+            case 0:
+                return BuildConfig.APP_ID;
+            case 1:
+                return BuildVars.OFFICAL_APP_ID;
+            case 2:
+                return BuildVars.TGX_APP_ID;
+            default:
+                return customAppId;
+
+        }
 
     }
 
-    public static void toggleShowBotLogin() {
+    public static String currentAppHash() {
 
-        preferences.edit().putBoolean("show_bot_login", showBotLogin = !showBotLogin).apply();
+        switch (customApi) {
+
+            case 0:
+                return BuildConfig.APP_HASH;
+            case 1:
+                return BuildVars.OFFICAL_APP_HASH;
+            case 2:
+                return BuildVars.TGX_APP_HASH;
+            default:
+                return customAppHash;
+
+        }
 
     }
 
+    public static void saveCustomApi() {
+
+        preferences.edit()
+                .putInt("custom_api", customApi)
+                .putInt("custom_app_id", customAppId)
+                .putString("custom_app_hash", customAppHash)
+                .apply();
+
+    }
+
+    public static String customDcIpv4 = preferences.getString("custom_dc_v4", "");
+    public static String customDcIpv6 = preferences.getString("custom_dc_v6", "");
+    public static int customDcPort = preferences.getInt("custom_dc_port", 12345);
+
+    public static void saveCustomDc() {
+
+        preferences.edit()
+                .putString("custom_dc_v4", customDcIpv4)
+                .putString("custom_dc_v6", customDcIpv6)
+                .putInt("custom_dc_port",customDcPort)
+                .apply();
+
+    }
 
 }

@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="UseOfficalId">Disfarça como aplicativo oficial</string>
-    <string name="UseOfficalIdNotice">Faça login usando o ID do aplicativo oficial. Se não conseguir se registrar ou fazer login, isso pode ajudar. \n\nNota: o fcm não funcionará se você estiver usando a versão de lançamento.</string>
     <string name="ChangeTranslateProvider">Alterar Provedor</string>
     <string name="NekoXUpdatesChannel">Canal de atualizações do NekoX</string>
-    <string name="ShowIdAndDc">Mostrar ID/DC no perfil</string>
     <string name="UseDefaultTheme">Usar o tema padrão *</string>
     <string name="NightMode">Modo Noturno</string>
     <string name="PrivacyNotice">Aviso de privacidade</string>
@@ -15,9 +12,7 @@
     <string name="DoNotRemindAgain">Não lembre novamente</string>
     <string name="RemoveTitleEmoji">Remover emoji no título</string>
     <string name="NekoXProxy">Proxy Público do NekoX</string>
-    <string name="PublicPrefix">[ Público ]</string>
-    <string name="NekoXProxyInfo">Pode levar dezenas de segundos até que o proxy público nativo do NekoX seja carregado :)</string>
-    <string name="HidePublicProxyList">Ocultar lista de proxy público</string>
+    <string name="PublicPrefix">Público</string>
     <string name="DisableChatAction">Não enviar meu status de entrada</string>
     <string name="FakeScreenshot">Simular captura de tela</string>
     <string name="SaveCacheToSdcard">Salvar cache no cartão SD*</string>
@@ -90,7 +85,6 @@
     <string name="ExportProxies">Exportar servidores para arquivo</string>
     <string name="ImportProxies">Importar servidores do arquivo</string>
     <string name="ImportProxyList">Importar servidores proxy</string>
-    <string name="ImportProxyListConfirm">Tem certeza de que deseja **importar servidores proxy**?</string>
     <string name="InvalidProxyFile">Arquivo de lista de proxy inválido: </string>
     <string name="ImportedProxies">Servidores proxy importados: </string>
     <string name="ErrorsInImport">Erros de importação: </string>
@@ -108,10 +102,6 @@
     <string name="EnableDeveloperMode">Ativar modo de desenvolvedor</string>
     <string name="DisableDeveloperMode">Desativar modo desenvolvedor</string>
     <string name="DeveloperSettings">Configurações de desenvolvedor</string>
-    <string name="DisableFlagSecure">Desativar sinalização segura</string>
-    <string name="DisableScreenshotDetection">Desativar detecção de captura de tela</string>
     <string name="LoginSettings">Configurações de login</string>
-    <string name="ShowTestBackend">Mostrar back-end de teste</string>
-    <string name="ShowBotLogin">Mostrar Login do Bot</string>
     <string name="NekoXFaq">FAQ do NekoX</string>
 </resources>

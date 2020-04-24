@@ -26,6 +26,9 @@ public class NekoConfig {
     public static boolean hideProxySponsorChannel;
     public static boolean disablePhotoSideAction;
     public static boolean hideKeyboardOnChatScroll;
+    public static boolean chatMessageAnimation;
+    public static boolean rearVideoMessages;
+    public static boolean hideAllTab;
     public static int mapPreviewProvider;
     public static float stickerSize;
     public static int translationProvider;
@@ -54,7 +57,6 @@ public class NekoConfig {
     public static int actionBarDecoration;
     public static boolean unlimitedFavedStickers;
     public static boolean unlimitedPinnedDialogs;
-
     public static boolean residentNotification;
 
     public static boolean disableChatAction;
@@ -120,8 +122,11 @@ public class NekoConfig {
         //showHiddenFeature = preferences.getBoolean("showHiddenFeature", false);
         hideKeyboardOnChatScroll = preferences.getBoolean("hideKeyboardOnChatScroll", false);
         avatarAsDrawerBackground = preferences.getBoolean("avatarAsDrawerBackground", true);
-        useSystemEmoji = preferences.getBoolean("useSystemEmoji", SharedConfig.useSystemEmoji);
+        useSystemEmoji = preferences.getBoolean("useSystemEmoji", false);
         showTabsOnForward = preferences.getBoolean("showTabsOnForward", showTabsOnForward);
+        chatMessageAnimation = preferences.getBoolean("chatMessageAnimation", false);
+        rearVideoMessages = preferences.getBoolean("rearVideoMessages", false);
+        hideAllTab = preferences.getBoolean("hideAllTab", false);
 
         disableChatAction = preferences.getBoolean("disable_chat_action", false);
         sortByUnread = preferences.getBoolean("sort_by_unread", false);
@@ -436,6 +441,30 @@ public class NekoConfig {
         editor.commit();
     }
 
+    public static void toggleChatMessageAnimation() {
+        chatMessageAnimation = !chatMessageAnimation;
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("chatMessageAnimation", chatMessageAnimation);
+        editor.commit();
+    }
+
+    public static void toggleRearVideoMessages() {
+        rearVideoMessages = !rearVideoMessages;
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("rearVideoMessages", rearVideoMessages);
+        editor.commit();
+    }
+
+    public static void toggleHideAllTab() {
+        hideAllTab = !hideAllTab;
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("hideAllTab", hideAllTab);
+        editor.commit();
+    }
+
     public static void toggleSortByUnmuted() {
 
         preferences.edit().putBoolean("sort_by_unmuted", sortByUnmuted = !sortByUnmuted).commit();
@@ -561,6 +590,5 @@ public class NekoConfig {
         preferences.edit().putBoolean("show_id_and_dc", showIdAndDc = !showIdAndDc).commit();
 
     }
-
 
 }

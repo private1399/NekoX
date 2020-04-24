@@ -536,7 +536,7 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
                         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                         SharedPreferences.Editor editor = preferences.edit();
                         editor.putInt("iv_font_size", SharedConfig.ivFontSize);
-                        editor.commit();
+                        editor.apply();
                         adapter[0].searchTextOffset.clear();
                         updatePaintSize();
                         invalidate();
@@ -2925,7 +2925,7 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
     }
 
     private void updatePaintFonts() {
-        ApplicationLoader.applicationContext.getSharedPreferences("articles", Activity.MODE_PRIVATE).edit().putInt("font_type", selectedFont).commit();
+        ApplicationLoader.applicationContext.getSharedPreferences("articles", Activity.MODE_PRIVATE).edit().putInt("font_type", selectedFont).apply();
         Typeface typefaceNormal = selectedFont == 0 ? Typeface.DEFAULT : Typeface.SERIF;
         Typeface typefaceItalic = selectedFont == 0 ? AndroidUtilities.getTypeface("fonts/ritalic.ttf") : Typeface.create("serif", Typeface.ITALIC);
         Typeface typefaceBold = selectedFont == 0 ? AndroidUtilities.getTypeface("fonts/rmedium.ttf") : Typeface.create("serif", Typeface.BOLD);
@@ -4126,14 +4126,17 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
                             if (cancel.get()) return;
                             boolean finaL = taskCount.decrementAndGet() == 0;
                             if (errorCount.incrementAndGet() > 3 || finaL) {
-                                UIUtil.runOnUIThread(dialog::dismiss);
-                                adapter[0].trans = false;
-                                transMenu.setTextAndIcon(LocaleController.getString("Translate", R.string.Translate), R.drawable.ic_translate);
-                                AlertUtil.showSimpleAlert(parentActivity, e.getMessage());
-                                cancel.set(true);
-                                transPool.shutdown();
-                                AlertUtil.showTransFailedDialog(parentActivity, e instanceof UnsupportedOperationException, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(), this::doTransLATE);
+                                UIUtil.runOnUIThread(() -> {
+                                    dialog.dismiss();
+                                    adapter[0].trans = false;
+                                    transMenu.setTextAndIcon(LocaleController.getString("Translate", R.string.Translate), R.drawable.ic_translate);
+                                });
                             }
+                            AlertUtil.showSimpleAlert(parentActivity, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                            cancel.set(true);
+                            transPool.shutdown();
+                            AlertUtil.showTransFailedDialog(parentActivity, e instanceof UnsupportedOperationException, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(), this::doTransLATE);
+
                             return;
                         }
 
@@ -4608,7 +4611,7 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
                         }
                         pagesStack.set(0, webPage);
                         if (pagesStack.size() == 1) {
-                            ApplicationLoader.applicationContext.getSharedPreferences("articles", Activity.MODE_PRIVATE).edit().remove("article" + webPage.id).commit();
+                            ApplicationLoader.applicationContext.getSharedPreferences("articles", Activity.MODE_PRIVATE).edit().remove("article" + webPage.id).apply();
                             updateInterfaceForCurrentPage(webPage, false, 0);
                             if (anchorFinal != null) {
                                 scrollToAnchor(anchorFinal);
@@ -4627,7 +4630,11 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
                             webPageFinal.cached_page.flags |= 8;
                             for (int a = 0; a < adapter.length; a++) {
                                 if (adapter[a].currentPage == webPageFinal) {
-                                    adapter[a].notifyItemChanged(adapter[a].getItemCount() - 1);
+                                    int p = adapter[a].getItemCount() - 1;
+                                    RecyclerView.ViewHolder holder = listView[a].findViewHolderForAdapterPosition(p);
+                                    if (holder != null) {
+                                        adapter[a].onViewAttachedToWindow(holder);
+                                    }
                                 }
                             }
                             if (messageObject != null) {
@@ -4933,7 +4940,7 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
             }
             SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("articles", Activity.MODE_PRIVATE).edit();
             String key = "article" + adapter[0].currentPage.id;
-            editor.putInt(key, position).putInt(key + "o", offset).putBoolean(key + "r", AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y).commit();
+            editor.putInt(key, position).putInt(key + "o", offset).putBoolean(key + "r", AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y).apply();
         }
     }
 
@@ -5986,11 +5993,14 @@ public class ArticleViewer implements NotificationCenter.NotificationCenterDeleg
             if (position < localBlocks.size()) {
                 TLRPC.PageBlock block = localBlocks.get(position);
                 bindBlockToHolder(holder.getItemViewType(), holder, block, position, localBlocks.size());
-            } else {
-                if (holder.getItemViewType() == 90) {
-                    ReportCell cell = (ReportCell) holder.itemView;
-                    cell.setViews(currentPage.cached_page != null ? currentPage.cached_page.views : 0);
-                }
+            }
+        }
+
+        @Override
+        public void onViewAttachedToWindow(RecyclerView.ViewHolder holder) {
+            if (holder.getItemViewType() == 90) {
+                ReportCell cell = (ReportCell) holder.itemView;
+                cell.setViews(currentPage.cached_page != null ? currentPage.cached_page.views : 0);
             }
         }
 
